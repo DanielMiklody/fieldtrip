@@ -30,7 +30,7 @@ function vol = ft_headmodel_openmeeg(geom, varargin)
 %
 % See also FT_PREPARE_VOL_SENS, FT_COMPUTE_LEADFIELD
 
-%$Id$
+%$Id: ft_headmodel_openmeeg.m 8305 2013-07-02 09:59:57Z roboos $
 
 ft_hastoolbox('openmeeg', 1);
 
@@ -180,6 +180,7 @@ try
     end
   end
   vol.mat = om_load_sym(hminvfile,'binary');
+  vol.matA = om_load_sym(hmfile,'binary');
   cleaner(vol,bndfile,condfile,geomfile,hmfile,hminvfile,exefile)
   cd(tmpfolder)
 catch

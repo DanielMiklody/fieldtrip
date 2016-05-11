@@ -36,8 +36,8 @@ else
   % we need the spm_dctmtx function for the nonlinear case
   ft_hastoolbox('spm8', 1);
 
-  dim  = P.VG.dim(1:3);
-  xyz  = ft_warp_apply(inv(P.VG.mat), input); % goes into voxel coordinates
+  dim  = P.VG(1).dim(1:3);
+  xyz  = ft_warp_apply(inv(P.VG(1).mat), input); % goes into voxel coordinates
   
   basX = spm_dctmtx(dim(1), size(P.Tr,1), xyz(:,1)-1);
   basY = spm_dctmtx(dim(2), size(P.Tr,2), xyz(:,2)-1);

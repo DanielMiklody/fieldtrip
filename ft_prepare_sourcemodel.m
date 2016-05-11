@@ -608,7 +608,7 @@ if basedonmni
   if ischar(fname) && ~exist(fname, 'file')
     error('the MNI template grid based on the specified resolution does not yet exist');
   end
-  
+
   % get the mri
   if ischar(cfg.mri)
     mri = ft_read_mri(cfg.mri);

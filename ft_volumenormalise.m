@@ -236,7 +236,7 @@ end
 flags.vox = [cfg.downsample,cfg.downsample,cfg.downsample];
 
 % determine the affine source->template coordinate transformation
-final = VG.mat * inv(params.Affine) * inv(VF.mat) * initial;
+final = VG(1).mat * inv(params.Affine) * inv(VF.mat) * initial;
 
 % apply the normalisation parameters to each of the volumes
 files  = cell(1,numel(cfg.parameter));

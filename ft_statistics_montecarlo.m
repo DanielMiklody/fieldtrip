@@ -80,9 +80,9 @@ function [stat, cfg] = ft_statistics_montecarlo(cfg, dat, design, varargin)
 %   cfg.voxelthreshold   deprecated
 %   cfg.precondition     before|after|[], for the statfun
 
-% Copyright (C) 2005-2007, Robert Oostenveld
+% Copyright (C) 2005-2015, Robert Oostenveld
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -100,20 +100,21 @@ function [stat, cfg] = ft_statistics_montecarlo(cfg, dat, design, varargin)
 %
 % $Id$
 
+ft_preamble randomseed; % deal with the user specified random seed
+
 % check if the input cfg is valid for this function
 cfg = ft_checkconfig(cfg, 'renamed',     {'factor',           'ivar'});
 cfg = ft_checkconfig(cfg, 'renamed',     {'unitfactor',       'uvar'});
 cfg = ft_checkconfig(cfg, 'renamed',     {'repeatedmeasures', 'uvar'});
 cfg = ft_checkconfig(cfg, 'renamedval',  {'clusterthreshold', 'nonparametric', 'nonparametric_individual'});
 cfg = ft_checkconfig(cfg, 'renamedval',  {'correctm', 'yes', 'max'});
+cfg = ft_checkconfig(cfg, 'renamedval',  {'correctm', 'none', 'no'});
 cfg = ft_checkconfig(cfg, 'renamedval',  {'correctm', 'bonferoni', 'bonferroni'});
 cfg = ft_checkconfig(cfg, 'renamedval',  {'correctm', 'holms', 'holm'});
 cfg = ft_checkconfig(cfg, 'required',    {'statistic'});
-cfg = ft_checkconfig(cfg, 'forbidden',   {'ztransform', ...
-  'removemarginalmeans', ...
-  'randomfactor', ...
-  'voxelthreshold', ...
-  'voxelstatistic'});
+cfg = ft_checkconfig(cfg, 'forbidden',   {'ztransform', 'removemarginalmeans', 'randomfactor', 'voxelthreshold', 'voxelstatistic'});
+cfg = ft_checkconfig(cfg, 'renamedval',  {'statfun', 'depsamplesF', 'ft_statfun_depsamplesFmultivariate'});
+cfg = ft_checkconfig(cfg, 'renamedval',  {'statfun', 'ft_statfun_depsamplesF', 'ft_statfun_depsamplesFmultivariate'});
 
 % set the defaults for the main function
 cfg.alpha        = ft_getopt(cfg, 'alpha',      0.05);
@@ -126,7 +127,6 @@ cfg.uvar         = ft_getopt(cfg, 'uvar',       []);
 cfg.cvar         = ft_getopt(cfg, 'cvar',       []);
 cfg.wvar         = ft_getopt(cfg, 'wvar',       []);
 cfg.correcttail  = ft_getopt(cfg, 'correcttail',  'no');
-%cfg.randomseed   = ft_getopt(cfg, 'randomseed',   'yes');
 cfg.precondition = ft_getopt(cfg, 'precondition', []);
 
 % explicit check for option 'yes' in cfg.correctail.
@@ -141,37 +141,38 @@ if strcmp(cfg.correctm, 'cluster')
   cfg.clusteralpha     = ft_getopt(cfg, 'clusteralpha',     0.05);
   cfg.clustercritval   = ft_getopt(cfg, 'clustercritval',   []);
   cfg.clustertail      = ft_getopt(cfg, 'clustertail',      cfg.tail);
+  cfg.connectivity     = ft_getopt(cfg, 'connectivity',     []); % the default is dealt with below
   
-  % deal with the neighbourhood of the
-  % channels/triangulation
-  cfg.connectivity     = ft_getopt(cfg, 'connectivity',     []);
-  if ischar(cfg.connectivity) && strcmp(cfg.connectivity, 'bwlabeln')
-    % this is set in statistics_wrapper when input source data is
-    % reshapable, requiring to use spm_bwlabel, rather than clusterstat)
-    cfg.connectivity = nan; % this designates that the data is reshapable in 3D space and that these dimensions can be treated by bwlabeln
-    if isfield(cfg, 'inside')
-      cfg = fixinside(cfg, 'index');
-    end
-  elseif isempty(cfg.connectivity)
-    if isfield(cfg, 'tri')
+  % deal with the neighbourhood of the channels/triangulation/voxels
+  if isempty(cfg.connectivity)
+    if isfield(cfg, 'dim') && ~isfield(cfg, 'channel') && ~isfield(cfg, 'tri')
+      % input data can be reshaped into a 3D volume, use bwlabeln/spm_bwlabel rather than clusterstat
+      fprintf('using connectivity of voxels in 3-D volume\n');
+      cfg.connectivity = nan;
+      if isfield(cfg, 'inside')
+        cfg = fixinside(cfg, 'index');
+      end
+    elseif isfield(cfg, 'tri')
+      % input data describes a surface along which neighbours can be defined
+      fprintf('using connectivity of vertices along triangulated surface\n');
       cfg.connectivity = triangle2connectivity(cfg.tri);
       if isfield(cfg, 'insideorig')
         cfg.connectivity = cfg.connectivity(cfg.insideorig, cfg.insideorig);
       end
     elseif isfield(cfg, 'avgoverchan') && istrue(cfg.avgoverchan)
-      % channel dimension has been averaged across, no sense in clustering
-      % across space
+      % channel dimension has been averaged across, no sense in clustering across space
       cfg.connectivity = true(1);
     elseif isfield(cfg, 'channel')
       cfg.neighbours   = ft_getopt(cfg, 'neighbours', []);
       cfg.connectivity = channelconnectivity(cfg);
     else
-      % no connectivity in the spatial dimension
+      % there is no connectivity in the spatial dimension
       cfg.connectivity = false(size(dat,1));
     end
   else
     % use the specified connectivity: op hoop van zegen
   end
+  
 else
   % these options only apply to clustering, to ensure appropriate configs they are forbidden when _not_ clustering
   cfg = ft_checkconfig(cfg, 'unused', {'clusterstatistic', 'clusteralpha', 'clustercritval', 'clusterthreshold', 'clustertail', 'neighbours'});
@@ -201,24 +202,11 @@ end
 
 % fetch function handle to the low-level statistics function
 statfun = ft_getuserfun(cfg.statistic, 'statfun');
-if isempty(statfun) && (strcmp(cfg.statistic,'depsamplesF') || strcmp(cfg.statistic,'ft_statfun_depsamplesF'));
-  error(['statistic function ' cfg.statistic ' has recently changed its name to ft_statfun_depsamplesFmultivariate']);
-end
 if isempty(statfun)
   error('could not locate the appropriate statistics function');
 else
   fprintf('using "%s" for the single-sample statistics\n', func2str(statfun));
 end
-
-% % initialize the random number generator.
-% if strcmp(cfg.randomseed, 'no')
-%   % do nothing
-% elseif strcmp(cfg.randomseed, 'yes')
-%   rand('state',sum(100*clock));
-% else
-%   % seed with the user-given value
-%   rand('state',cfg.randomseed);
-% end;
 
 % construct the resampled design matrix or data-shuffling matrix
 fprintf('constructing randomized design\n');
@@ -270,6 +258,7 @@ try
 catch
   num = 1;
 end
+
 if num==1,
   % only the statistic is returned
   [statobs] = statfun(cfg, dat, design);
@@ -291,6 +280,7 @@ else
   % remember the statistic for later reference, continue to work with the statistic
   statfull.stat = statobs;
 end
+
 time_eval = cputime - time_pre;
 fprintf('estimated time per randomization is %.2f seconds\n', time_eval);
 
@@ -305,7 +295,7 @@ end
 if strcmp(cfg.precondition, 'after'),
   tmpcfg = cfg;
   tmpcfg.preconditionflag = 1;
-  [tmpstat, tmpcfg, dat]     = statfun(tmpcfg, dat, design);
+  [tmpstat, tmpcfg, dat] = statfun(tmpcfg, dat, design);
 end
 
 % compute the statistic for the randomized data and count the outliers
@@ -325,7 +315,7 @@ for i=1:Nrand
     % keep each randomization in memory for cluster postprocessing
     dum = statfun(cfg, tmpdat, tmpdesign);
     if isstruct(dum)
-      statrand(:,i) = getfield(dum, 'stat');
+      statrand(:,i) = dum.stat;
     else
       statrand(:,i) = dum;
     end
@@ -333,7 +323,7 @@ for i=1:Nrand
     % do not keep each randomization in memory, but process them on the fly
     statrand = statfun(cfg, tmpdat, tmpdesign);
     if isstruct(statrand)
-      statrand = getfield(statrand, 'stat');
+      statrand = statrand.stat;
     end
     % the following line is for debugging
     % stat.statkeep(:,i) = statrand;
@@ -422,7 +412,7 @@ if isfield(stat, 'posclusters')
   for i=1:length(stat.posclusters)
     stat.posclusters(i).stddev  = sqrt(stat.posclusters(i).prob.*(1-stat.posclusters(i).prob)/Nrand);
     stat.posclusters(i).cirange =  1.96*stat.posclusters(i).stddev;
-    if stat.posclusters(i).prob<cfg.alpha && stat.posclusters(i).prob+stat.posclusters(i).cirange>=cfg.alpha
+    if i==1 && stat.posclusters(i).prob<cfg.alpha && stat.posclusters(i).prob+stat.posclusters(i).cirange>=cfg.alpha
       warning('FieldTrip:posCluster_exceeds_alpha', sprintf('The p-value confidence interval of positive cluster #%i includes %.3f - consider increasing the number of permutations!', i, cfg.alpha));
     end
   end
@@ -431,7 +421,7 @@ if isfield(stat, 'negclusters')
   for i=1:length(stat.negclusters)
     stat.negclusters(i).stddev  = sqrt(stat.negclusters(i).prob.*(1-stat.negclusters(i).prob)/Nrand);
     stat.negclusters(i).cirange =  1.96*stat.negclusters(i).stddev;
-    if stat.negclusters(i).prob<cfg.alpha && stat.negclusters(i).prob+stat.negclusters(i).cirange>=cfg.alpha
+    if i==1 && stat.negclusters(i).prob<cfg.alpha && stat.negclusters(i).prob+stat.negclusters(i).cirange>=cfg.alpha
       warning('FieldTrip:negCluster_exceeds_alpha', sprintf('The p-value confidence interval of negative cluster #%i includes %.3f - consider increasing the number of permutations!', i, cfg.alpha));
     end
   end
@@ -501,6 +491,8 @@ for i=1:length(fn)
     stat = setfield(stat, fn{i}, getfield(statfull, fn{i}));
   end
 end
+
+ft_postamble randomseed; % deal with the potential user specified randomseed
 
 warning(ws); % revert to original state
 

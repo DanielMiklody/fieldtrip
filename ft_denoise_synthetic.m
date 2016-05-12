@@ -23,7 +23,7 @@ function [data] = ft_denoise_synthetic(cfg, data)
 
 % Copyright (C) 2004-2008, Robert Oostenveld
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -41,18 +41,21 @@ function [data] = ft_denoise_synthetic(cfg, data)
 %
 % $Id$
 
-revision = '$Id$';
+% these are used by the ft_preamble/ft_postamble function and scripts
+ft_revision = '$Id$';
+ft_nargin   = nargin;
+ft_nargout  = nargout;
 
 % do the general setup of the function
 ft_defaults
 ft_preamble init
-ft_preamble provenance
-ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar data
+ft_preamble provenance data
+ft_preamble trackconfig
 
-% the abort variable is set to true or false in ft_preamble_init
-if abort
+% the ft_abort variable is set to true or false in ft_preamble_init
+if ft_abort
   return
 end
 
@@ -60,7 +63,7 @@ end
 cfg = ft_checkconfig(cfg, 'required', {'gradient'});
 
 % set the defaults
-if ~isfield(cfg, 'trials'), cfg.trials = 'all'; end
+cfg.trials = ft_getopt(cfg, 'trials', 'all', 1);
 
 % store the original type of the input data
 dtype = ft_datatype(data);
@@ -81,10 +84,10 @@ if ~hasref
 end
 
 % select trials of interest
-if ~strcmp(cfg.trials, 'all')
-  fprintf('selecting %d trials\n', length(cfg.trials));
-  data = ft_selectdata(data, 'rpt', cfg.trials);
-end
+tmpcfg = keepfields(cfg, 'trials');
+data   = ft_selectdata(tmpcfg, data);
+% restore the provenance information
+[cfg, data] = rollback_provenance(cfg, data);
 
 % remember the original channel ordering
 labelorg = data.label;
@@ -141,8 +144,7 @@ end
 % do the general cleanup and bookkeeping at the end of the function
 ft_postamble debug
 ft_postamble trackconfig
-ft_postamble provenance
-ft_postamble previous data
-ft_postamble history data
-ft_postamble savevar data
-
+ft_postamble previous   data
+ft_postamble provenance data
+ft_postamble history    data
+ft_postamble savevar    data

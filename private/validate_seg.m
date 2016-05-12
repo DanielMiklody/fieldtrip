@@ -14,13 +14,13 @@ function [tissue1, tissue2, tissue3] = validate_seg(tissue1, tissue2, tissue3)
 % the input is invalid and cannot be converted to overlapping segmentations, this function will give
 % an error.
 %
-% This function makes use of functions from the Matlab Signal Processing Toolbox.
+% This function makes use of functions from the MATLAB Signal Processing Toolbox.
 %
 % See also TRIANGULATE_SEG, PREPARE_MESH_SEGMENTATION
 
 % Copyright (C) 2012, Robert Oostenveld
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify

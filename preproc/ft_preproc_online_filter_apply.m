@@ -7,7 +7,7 @@ function [FM, xf] = ft_preproc_online_filter_apply(FM, x)
 
 % Copyright (C) 2010, Stefan Klanke
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -39,7 +39,7 @@ if dimX > numX
 		FM.z(:,1) = z0;
 	end
 else
-	% use built-in Matlab stuff - faster for many samples
+	% use built-in MATLAB stuff - faster for many samples
 	[xf, z] = filter(FM.B,FM.A, x, FM.z',2);
 	FM.z = z';
 end

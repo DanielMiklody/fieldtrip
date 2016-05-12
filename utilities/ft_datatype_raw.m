@@ -1,4 +1,4 @@
-function data = ft_datatype_raw(data, varargin)
+function [data] = ft_datatype_raw(data, varargin)
 
 % FT_DATATYPE_RAW describes the FieldTrip MATLAB structure for raw data
 %
@@ -29,7 +29,7 @@ function data = ft_datatype_raw(data, varargin)
 %
 % Obsoleted fields:
 %   - offset
-% 
+%
 % Historical fields:
 %   - cfg, elec, fsample, grad, hdr, label, offset, sampleinfo, time,
 %   trial, trialdef, see bug2513
@@ -57,7 +57,7 @@ function data = ft_datatype_raw(data, varargin)
 
 % Copyright (C) 2011, Robert Oostenveld
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -79,6 +79,14 @@ function data = ft_datatype_raw(data, varargin)
 version       = ft_getopt(varargin, 'version', 'latest');
 hassampleinfo = ft_getopt(varargin, 'hassampleinfo', 'ifmakessense'); % can be yes/no/ifmakessense
 hastrialinfo  = ft_getopt(varargin, 'hastrialinfo',  'ifmakessense'); % can be yes/no/ifmakessense
+
+% do some sanity checks
+assert(isfield(data, 'trial') && isfield(data, 'time') && isfield(data, 'label'), 'inconsistent raw data structure, some field is missing');
+assert(length(data.trial)==length(data.time), 'inconsistent number of trials in raw data structure');
+for i=1:length(data.trial)
+  assert(size(data.trial{i},2)==length(data.time{i}), 'inconsistent number of samples in trial %d', i);
+  assert(size(data.trial{i},1)==length(data.label), 'inconsistent number of channels in trial %d', i);
+end
 
 if isequal(hassampleinfo, 'ifmakessense')
   hassampleinfo = 'no'; % default to not adding it
@@ -139,7 +147,17 @@ switch version
     end
     
     if ~isfield(data, 'fsample')
-      data.fsample = 1/mean(diff(data.time{1}));
+      for i=1:length(data.time)
+        if length(data.time{i})>1
+          data.fsample = 1/mean(diff(data.time{i}));
+          break
+        else
+          data.fsample = nan;
+        end
+      end
+      if isnan(data.fsample)
+        warning('cannot determine sampling frequency');
+      end
     end
     
     if isfield(data, 'offset')
@@ -289,7 +307,7 @@ needfix = needfix || ~all(skew==0) && all(skew<0.01);
 
 % if the skew is less than 1% it will be corrected
 if needfix
-  warning_once('correcting numerical inaccuracy in the time axes');
+  ft_warning('correcting numerical inaccuracy in the time axes');
   for i=1:length(data.time)
     % reconstruct the time axis of each trial, using the begin latency of
     % the first trial and the integer offset in samples of each trial

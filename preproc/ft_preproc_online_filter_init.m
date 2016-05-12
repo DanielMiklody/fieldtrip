@@ -10,7 +10,7 @@ function FM = ft_preproc_online_filter_init(B, A, x)
 
 % Copyright (C) 2010, Stefan Klanke
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -61,7 +61,7 @@ FM.A2 = A(2:end);
 FM.B1 = B(1);
 FM.B2 = B(2:end);
 
-% this would be for direct form II, but Matlab filter uses direct form II transpose
+% this would be for direct form II, but MATLAB filter uses direct form II transpose
 % FM.z = x*(ones(1,FM.N)/sum(B));
 
 % there might be a faster way to compute this, but I can't think of any right now

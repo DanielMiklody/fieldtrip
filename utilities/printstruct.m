@@ -20,10 +20,12 @@ function str = printstruct(name, val)
 %   s = printstruct(b)
 %
 %   s = printstruct('c', randn(10)>0.5)
+%
+% See also DISP
 
 % Copyright (C) 2006-2013, Robert Oostenveld
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -185,8 +187,13 @@ switch class(val)
     str = ['@' func2str(val)];
     
   case 'struct'
-    warning('cannot print structure at this level');
-    str = '''FIXME: printing structures at this level is not supported''';
+    % print it as an anonymous structure
+    str = 'struct(';
+    fn = fieldnames(val);
+    for i=1:numel(fn)
+      str = [str '''' fn{i} '''' ', ' printval(val.(fn{i}))];
+    end
+    str = [str ')'];
     
   otherwise
     warning('cannot print unknown object at this level');

@@ -1,8 +1,8 @@
 function [cfg] = ft_connectivityplot(cfg, varargin)
 
-% FT_CONNECTIVITYPLOT plots frequency-resolved connectivity between EEG/MEG
-% channels. The data are rendered in a square grid of subplots and each
-% subplot containing the connectivity spectrum.
+% FT_CONNECTIVITYPLOT plots channel-level frequency resolved connectivity. The
+% data are rendered in a square grid of subplots, each subplot containing the
+% connectivity spectrum between the two respective channels.
 %
 % Use as
 %   ft_connectivityplot(cfg, data)
@@ -22,7 +22,7 @@ function [cfg] = ft_connectivityplot(cfg, varargin)
 
 % Copyright (C) 2011-2013, Jan-Mathijs Schoffelen
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -40,17 +40,20 @@ function [cfg] = ft_connectivityplot(cfg, varargin)
 %
 % $Id$
 
-revision = '$Id$';
+% these are used by the ft_preamble/ft_postamble function and scripts
+ft_revision = '$Id$';
+ft_nargin   = nargin;
+ft_nargout  = nargout;
 
 % do the general setup of the function
 ft_defaults
 ft_preamble init
-ft_preamble provenance
-ft_preamble trackconfig
 ft_preamble debug
+ft_preamble provenance varargin
+ft_preamble trackconfig
 
-% the abort variable is set to true or false in ft_preamble_init
-if abort
+% the ft_abort variable is set to true or false in ft_preamble_init
+if ft_abort
   return
 end
 
@@ -115,7 +118,7 @@ if numel(varargin)>1
   end
   ft_connectivityplot(tmpcfg, data);
   tmpcfg = cfg;
-  
+
   % FIXME also set the zlim scale to be consistent across inputs
   for k = 2:numel(varargin)
     tmpcfg.color   = tmpcfg.color(2:end);
@@ -145,16 +148,13 @@ if ~isfield(data, cfg.parameter)
   error('the data does not contain the requested parameter %s', cfg.parameter);
 end
 
-cfg.channel = ft_channelselection(cfg.channel, data.label);
-
-tmpcfg         = [];
-tmpcfg.channel = cfg.channel;
-tmpcfg.foilim  = cfg.xlim;
-data           = ft_selectdata(tmpcfg, data);
-
+% get the selection of the data
+tmpcfg           = [];
+tmpcfg.channel   = cfg.channel;
+tmpcfg.frequency = cfg.xlim;
+data             = ft_selectdata(tmpcfg, data);
 % restore the provenance information
 [cfg, data] = rollback_provenance(cfg, data);
-
 
 dat   = data.(cfg.parameter);
 nchan = numel(data.label);
@@ -191,8 +191,8 @@ end
 
 % add channel labels on grand X and Y axes
 for k = 1:nchan
-  ft_plot_text(0,       (nchan + 1 - k).*1.2, data.label{k}, 'Interpreter', 'none');
-  ft_plot_text(k.*1.2,  (nchan + 1)    .*1.2, data.label{k}, 'Interpreter', 'none');
+  ft_plot_text(0,       (nchan + 1 - k).*1.2, data.label{k}, 'Interpreter', 'none', 'horizontalalignment', 'right');
+  ft_plot_text(k.*1.2,  (nchan + 1)    .*1.2, data.label{k}, 'Interpreter', 'none', 'horizontalalignment', 'left', 'rotation', 90);
 end
 
 % add 'from' and 'to' labels
@@ -207,5 +207,5 @@ set(gcf, 'color', [1 1 1]);
 % do the general cleanup and bookkeeping at the end of the function
 ft_postamble debug
 ft_postamble trackconfig
-ft_postamble provenance
 ft_postamble previous varargin
+ft_postamble provenance

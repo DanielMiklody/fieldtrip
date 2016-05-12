@@ -1,7 +1,7 @@
 function test_tutorial_headmodel_eeg
 
-% MEM 2gb
-% WALLTIME 00:30:00
+% MEM 5gb
+% WALLTIME 01:30:00
 
 % TEST test_tutorial_headmodel_eeg
 % TEST ft_read_mri ft_volumesegment ft_prepare_mesh ft_prepare_headmodel
@@ -10,12 +10,7 @@ function test_tutorial_headmodel_eeg
 
 clear all;
 %% load mri
-if ispc
-    datadir = 'H:';
-else
-    datadir = '/home';
-end
-mri=ft_read_mri(strcat(datadir,'/common/matlab/fieldtrip/data/Subject01.mri'));
+mri=ft_read_mri(dccnpath('/home/common/matlab/fieldtrip/data/Subject01.mri'));
 
 %% segmentation
 
@@ -27,7 +22,7 @@ segmentedmri = ft_volumesegment(cfg,mri);
 
 % check if segmentation is the same as the segmentation on the ftp site
 
-segmentedmri2=load([datadir,'/common/matlab/fieldtrip/data/ftp/tutorial/headmodel_eeg/segmentedmri']);
+segmentedmri2=load(dccnpath('/home/common/matlab/fieldtrip/data/ftp/tutorial/headmodel_eeg/segmentedmri'));
 segmentedmri2=rmfield(segmentedmri2.segmentedmri,'cfg');
 segmentedmri1=rmfield(segmentedmri,'cfg');
 assert(isequal(segmentedmri2,segmentedmri1),'Segmentation does not match the segmentation on ftp/tutorial/headmodel_eeg');
@@ -45,18 +40,34 @@ bnd=ft_prepare_mesh(cfg,segmentedmri);
 
 clear segmentedmri;
 %% headmodel
+% dipoli
 cfg=[];
 cfg.method='dipoli';
 vol=ft_prepare_headmodel(cfg,bnd);
 %save vol vol;
 
-% check if segmentation is the same as the segmentation on the ftp site
+% Openmeeg
+system('module load openmeeg'); % Load openmeeg paths
+cfg=[];
+cfg.method='openmeeg';
+vol_openmeeg=ft_prepare_headmodel(cfg,bnd);
+% warning- takes ~40 minutes
 
-vol2=load([datadir,'/common/matlab/fieldtrip/data/ftp/tutorial/headmodel_eeg/vol']);
+% check if segmentation is the same as the segmentation on the ftp site
+% dipoli
+vol2=load(dccnpath('/home/common/matlab/fieldtrip/data/ftp/tutorial/headmodel_eeg/vol'));
 vol2=rmfield(vol2.vol,'cfg');
 vol1=rmfield(vol,'cfg');
-assert(isequal(vol2,vol1),'Segmentation does not match the segmentation on ftp/tutorial/headmodel_eeg');
+assert(isequal(vol2,vol1),'Segmentation of dipoli vol does not match the segmentation on ftp/tutorial/headmodel_eeg');
 clear vol1 vol2;
+
+% openmeeg
+vol2=load(dccnpath('/home/common/matlab/fieldtrip/data/ftp/tutorial/headmodel_eeg/vol_openmeeg'));
+vol2=rmfield(vol2.vol,'cfg');
+vol1=rmfield(vol_openmeeg,'cfg');
+assert(isequal(vol2,vol1),'Segmentation of openmeeg vol does not match the segmentation on ftp/tutorial/headmodel_eeg');
+clear vol1 vol2;
+
 
 %% visualization
 figure;
@@ -76,7 +87,7 @@ ft_plot_mesh(vol.bnd(3),'edgecolor','none','facecolor',[0.4 0.6 0.4]);
 close all;
 %% align electrodes
 
-elec = ft_read_sens(strcat(datadir,'/common/matlab/fieldtrip/template/electrode/standard_1020.elc'));
+elec = ft_read_sens(dccnpath('/home/common/matlab/fieldtrip/template/electrode/standard_1020.elc'));
 
 figure;
 ft_plot_sens(elec,'style','sk');
@@ -98,6 +109,10 @@ close all;
  fiducials.label={'Nz','LPA','RPA'};
  fiducials.unit='mm';
  
+ % ensure the elec to have a coordsys field, in order to avoid
+ % the interactive step due to the call to ft_determine_coordsys
+ % in ft_electroderealign
+ elec.coordsys = 'ctf';
  
  cfg=[];
  cfg.method='fiducial';

@@ -24,7 +24,7 @@ function [dat] = volplot(x, y, z, dat, sel, cscale)
 
 % Copyright (C) 2003, Robert Oostenveld
 % 
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -173,7 +173,7 @@ elseif strcmp(sel, 'montage')
   maxval = max(dat(:));
 %  for z=1:size(dat,3)
 %    % convert to 4D image for montage display
-%    % transpose to correct for x-y axis change in Matlab image function
+%    % transpose to correct for x-y axis change in MATLAB image function
 %    img(:,:,1,z) = transpose(dat(:,:,z));
 %  end
 %  montage(img);

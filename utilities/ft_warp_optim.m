@@ -43,7 +43,7 @@ function [result, M] = ft_warp_optim(input, target, method)
 % along with this program; if not, write to the Free Software
 % Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -77,7 +77,7 @@ pos2 = target;
 % feval that is executed by the optimalization toolbox.
 errorfun = str2func('ft_warp_error');
 
-% determine whether the Matlab Optimization toolbox is available and can be used
+% determine whether the MATLAB Optimization toolbox is available and can be used
 if ft_hastoolbox('optim')
   optimfun = @fminunc;
 else

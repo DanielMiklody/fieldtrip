@@ -26,7 +26,7 @@ function [V] = ft_write_mri(filename, dat, varargin)
 
 % Copyright (C) 2011-2012, Jan-Mathijs Schoffelen
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -73,7 +73,7 @@ switch dataformat
     % mgz-volume using freesurfer
     ft_hastoolbox('freesurfer', 1);
     
-    % in matlab the transformation matrix assumes the voxel indices to be 1-based
+    % in MATLAB the transformation matrix assumes the voxel indices to be 1-based
     % freesurfer assumes the voxel indices to be 0-based
     transform = vox2ras_1to0(transform);
     save_mgh(dat, filename, transform);

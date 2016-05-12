@@ -87,10 +87,10 @@ if opt==1
   end
   mri2 = ft_read_mri(template);
   
-  tname1 = tempname;
-  tname2 = tempname;
-  V1 = ft_write_mri([tname1, '.img'], mri.anatomy,  'transform', mri.transform,  'spmversion', spm('ver'), 'dataformat', 'nifti_spm');
-  V2 = ft_write_mri([tname2, '.img'], mri2.anatomy, 'transform', mri2.transform, 'spmversion', spm('ver'), 'dataformat', 'nifti_spm');
+  tname1 = [tempname, '.img'];
+  tname2 = [tempname, '.img'];
+  V1 = ft_write_mri(tname1, mri.anatomy,  'transform', mri.transform,  'spmversion', spm('ver'), 'dataformat', 'nifti_spm');
+  V2 = ft_write_mri(tname2, mri2.anatomy, 'transform', mri2.transform, 'spmversion', spm('ver'), 'dataformat', 'nifti_spm');
   
   % the below, using just spm_affreg does not work robustly enough in some
   % cases
@@ -112,7 +112,8 @@ if opt==1
   mri.head2headOrig = spmhead2ctfhead2;
   
   % delete the temporary files
-  delete([tname1, '.img'],[tname1, '.hdr'],[tname2, '.img'],[tname2, '.hdr']);
+  delete(tname1); delete(strrep(tname1, 'img', 'hdr'));
+  delete(tname2); delete(strrep(tname2, 'img', 'hdr'));
   
 elseif opt==2
   % use spm_normalise
@@ -135,10 +136,10 @@ elseif opt==2
   end
   mri2 = ft_read_mri(template);
   
-  tname1 = tempname;
-  tname2 = tempname;
-  V1 = ft_write_mri([tname1, '.img'], mri.anatomy,  'transform', mri.transform,  'spmversion', spm('ver'), 'dataformat', 'nifti_spm');
-  V2 = ft_write_mri([tname2, '.img'], mri2.anatomy, 'transform', mri2.transform, 'spmversion', spm('ver'), 'dataformat', 'nifti_spm');
+  tname1 = [tempname, '.img'];
+  tname2 = [tempname, '.img'];
+  V1 = ft_write_mri(tname1, mri.anatomy,  'transform', mri.transform,  'spmversion', spm('ver'), 'dataformat', 'nifti_spm');
+  V2 = ft_write_mri(tname2, mri2.anatomy, 'transform', mri2.transform, 'spmversion', spm('ver'), 'dataformat', 'nifti_spm');
   
   flags.nits       = 0; %set number of non-linear iterations to zero
   flags.regtype    = 'rigid';
@@ -157,6 +158,7 @@ elseif opt==2
   mri.head2headOrig = spmhead2ctfhead2;
   
   % delete the temporary files
-  delete([tname1, '.img'],[tname1, '.hdr'],[tname2, '.img'],[tname2, '.hdr']);
+  delete(tname1); delete(strrep(tname1, 'img', 'hdr'));
+  delete(tname2); delete(strrep(tname2, 'img', 'hdr'));
 end
 

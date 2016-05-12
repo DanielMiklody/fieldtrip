@@ -132,7 +132,7 @@ cfg.trl(:,4) = [ones(5,1); ones(5,1)*2];
 cfg.continuous = 'yes';
 cfg.artfctdef.type  = 'eog';
 cfg.artfctdef.eog.channel = 'MLO11';
-cfg.artfctdef.eog.feedback = 'yes';
+cfg.artfctdef.eog.feedback = 'no'; % yes does not work in the test script, see http://bugzilla.fcdonders.nl/show_bug.cgi?id=2840
 cfg          = ft_rejectartifact(cfg);
 
 datay = data1;
@@ -152,21 +152,3 @@ timelock         = ft_timelockanalysis(cfg, data1);
 cfg          = [];
 cfg.gradient = 'G1BR';
 dataG1BR     = ft_denoise_synthetic(cfg, data1);
-
-% inventorise which functions still use findcfg to localise the trl matrix
-cd ~/matlab/fieldtrip
-system('grep findcfg *.m > findcfgtrunk.txt');
-cd ~/matlab/fieldtrip/private
-system('grep findcfg *.m > ~/matlab/fieldtrip/findcfgprivate.txt');
-cd ~/matlab/fieldtrip/fileio/
-system('grep findcfg *.m > ~/matlab/fieldtrip/findcfgfileio.txt');
-cd ~/matlab/fieldtrip/fileio/private
-system('grep findcfg *.m > ~/matlab/fieldtrip/findcfgfileioprivate.txt');
-cd ~/matlab/fieldtrip/preproc/
-system('grep findcfg *.m > ~/matlab/fieldtrip/findcfgpreproc.txt');
-cd ~/matlab/fieldtrip/preproc/private
-system('grep findcfg *.m > ~/matlab/fieldtrip/findcfgpreprocprivate.txt');
-cd ~/matlab/fieldtrip/public/
-system('grep findcfg *.m > ~/matlab/fieldtrip/findcfgpublic.txt');
-cd ~/matlab/fieldtrip/public/private
-system('grep findcfg *.m > ~/matlab/fieldtrip/findcfgpublicprivate.txt');

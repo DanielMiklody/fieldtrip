@@ -53,7 +53,7 @@ function label = ft_senslabel(type, varargin)
 % Copyright (C) 2007-2013, Robert Oostenveld
 % Copyright (C) 2008, Vladimir Litvak
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %  FieldTrip is free software: you can redistribute it and/or modify
@@ -2901,7 +2901,8 @@ elseif isempty(eval(type))
       for i = 1:33
         label{i} = sprintf('E%d', i);
       end
-      label{end+1} = 'Cz';
+      % there might also be a reference channel, but its name is inconsistent
+      % it might be Cz, REF, VREF or 'vertex reference'
       
     case 'egi64'
       % this should be  uppercase for consistency with ft_read_header
@@ -2909,7 +2910,8 @@ elseif isempty(eval(type))
       for i = 1:65
         label{i} = sprintf('E%d', i);
       end
-      label{end+1} = 'Cz';
+      % there might also be a reference channel, but its name is inconsistent
+      % it might be Cz, REF, VREF or 'vertex reference'
       
     case 'egi128'
       % this should be  uppercase for consistency with ft_read_header
@@ -2917,7 +2919,8 @@ elseif isempty(eval(type))
       for i = 1:129
         label{i} = sprintf('E%d', i);
       end
-      label{end+1} = 'Cz';
+      % there might also be a reference channel, but its name is inconsistent
+      % it might be Cz, REF, VREF or 'vertex reference'
       
     case 'egi256'
       % this should be  uppercase for consistency with ft_read_header
@@ -2925,7 +2928,8 @@ elseif isempty(eval(type))
       for i = 1:257
         label{i} = sprintf('E%d', i);
       end
-      label{end+1} = 'Cz';
+      % there might also be a reference channel, but its name is inconsistent
+      % it might be Cz, REF, VREF or 'vertex reference'
       
     case 'itab28'
       label = {
@@ -3651,7 +3655,7 @@ elseif isempty(eval(type))
         };
       yokogawa440_planar_combined = label(:,3);
       label = label(:,1:2);
-      
+       
     case {'eeg' 'electrode'}
       % there is no default set of electrode labels for all possible EEG systems
       % but nevertheless the requested input type should not result in an error

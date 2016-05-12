@@ -29,7 +29,7 @@ function [pnt, tri] = triangulate_seg(seg, npnt, origin)
 
 % Copyright (C) 2005-2012, Robert Oostenveld
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -133,7 +133,7 @@ end
 % pnt(:,2) = pnt(:,2) - origin(2);
 % pnt(:,3) = pnt(:,3) - origin(3);
 
-% fast unconditional re-implementation of the standard Matlab function
+% fast unconditional re-implementation of the standard MATLAB function
 function [s] = sub2ind(dim, i, j, k)
 s = i + (j-1)*dim(1) + (k-1)*dim(1)*dim(2);
 

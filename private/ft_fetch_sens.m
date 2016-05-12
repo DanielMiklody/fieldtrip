@@ -30,7 +30,7 @@ function [sens] = ft_fetch_sens(cfg, data)
 
 % Copyright (C) 2011, J?rn M. Horschig
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -129,6 +129,9 @@ elseif haselecfile
   if isfield(dum,'unit')
     sens.unit = dum.unit;
   end
+  if isfield(dum,'coordsys')
+    sens.coordsys = dum.coordsys;
+  end
 elseif hascfgelec
   display('using electrodes specified in the configuration\n');
   sens = cfg.elec;
@@ -148,6 +151,9 @@ elseif hascfgelec
   if isfield(dum,'unit')
     sens.unit = dum.unit;
   end
+  if isfield(dum,'coordsys')
+    sens.coordsys = dum.coordsys;
+  end
 elseif hasdataelec
   display('using electrodes specified in the data\n');
   sens = data.elec;
@@ -163,6 +169,9 @@ elseif hasdataelec
   sens.label   = dum.label;
   if isfield(dum,'unit')
     sens.unit = dum.unit;
+  end
+  if isfield(dum,'coordsys')
+    sens.coordsys = dum.coordsys;
   end
 elseif haslayout
   display('Using the 2-D layout to determine the sensor position\n');

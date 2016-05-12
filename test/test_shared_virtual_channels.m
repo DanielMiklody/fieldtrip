@@ -6,20 +6,13 @@ function test_shared_virtual_channels
 % TEST test_shared_virtual_channels
 % TEST ft_timelockanalysis ft_sourceanalysis ft_channelselection ft_databrowser
 
-% disable verbose output
 global ft_default;
 ft_default.feedback = 'no';
 
-if ispc
-  datadir  = 'H:\common\matlab\fieldtrip\data\ftp\tutorial\beamformer_extended';
-elseif isunix
-  datadir = '/home/common/matlab/fieldtrip/data/ftp/tutorial/beamformer_extended';
-end
-
-load(fullfile(datadir, 'hdm.mat'));
-load(fullfile(datadir, 'source_diff'));
-load(fullfile(datadir, 'source_coh_lft'));
-load(fullfile(datadir, 'data_cmb'));
+load(dccnpath('/home/common/matlab/fieldtrip/data/ftp/tutorial/beamformer_extended/hdm.mat'));
+load(dccnpath('/home/common/matlab/fieldtrip/data/ftp/tutorial/beamformer_extended/source_diff'));
+load(dccnpath('/home/common/matlab/fieldtrip/data/ftp/tutorial/beamformer_extended/source_coh_lft'));
+load(dccnpath('/home/common/matlab/fieldtrip/data/ftp/tutorial/beamformer_extended/data_cmb'));
 
 [maxval, maxcohindx] = max(source_coh_lft.avg.coh);
 source_coh_lft.pos(maxcohindx, :)

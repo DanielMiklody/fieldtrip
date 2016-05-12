@@ -47,7 +47,7 @@ function [varargout] = ft_selectdata_new(cfg, varargin)
 
 % Copyright (C) 2012-2014, Robert Oostenveld & Jan-Mathijs Schoffelen
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -66,7 +66,7 @@ function [varargout] = ft_selectdata_new(cfg, varargin)
 % $Id$
 
 ft_defaults                   % this ensures that the path is correct and that the ft_defaults global variable is available
-ft_preamble init              % this will reset warning_once and show the function help if nargin==0 and return an error
+ft_preamble init              % this will reset ft_warning and show the function help if nargin==0 and return an error
 ft_preamble provenance        % this records the time and memory usage at teh beginning of the function
 ft_preamble trackconfig       % this converts the cfg structure in a config object, which tracks the cfg options that are being used
 ft_preamble debug             % this allows for displaying or saving the function name and input arguments upon an error
@@ -614,7 +614,7 @@ varargout = varargin;
 
 ft_postamble debug              % this clears the onCleanup function used for debugging in case of an error
 ft_postamble trackconfig        % this converts the config object back into a struct and can report on the unused fields
-ft_postamble provenance         % this records the time and memory at the end of the function, prints them on screen and adds this information together with the function name and matlab version etc. to the output cfg
+ft_postamble provenance         % this records the time and memory at the end of the function, prints them on screen and adds this information together with the function name and MATLAB version etc. to the output cfg
 % ft_postamble previous varargin  % this copies the datain.cfg structure into the cfg.previous field. You can also use it for multiple inputs, or for "varargin"
 % ft_postamble history varargout  % this adds the local cfg structure to the output data structure, i.e. dataout.cfg = cfg
 

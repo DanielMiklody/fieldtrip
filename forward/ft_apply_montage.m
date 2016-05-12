@@ -45,7 +45,7 @@ function [input] = ft_apply_montage(input, montage, varargin)
 
 % Copyright (C) 2008-2014, Robert Oostenveld
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -147,6 +147,11 @@ else
 end
 
 % check the consistency of the montage
+if ~iscell(montage.labelorg) || ~iscell(montage.labelnew)
+  error('montage labels need to be specified in cell-arrays');
+end
+
+% check the consistency of the montage
 if ~all(isfield(montage, {'tra', 'labelorg', 'labelnew'}))
   error('the second input argument does not correspond to a montage');
 end
@@ -230,6 +235,21 @@ addchanunit = inputchanunit(sort(ix));
 m = size(montage.tra,1);
 n = size(montage.tra,2);
 k = length(addlabel);
+% check for NaNs in unused channels; these will be mixed in with the rest
+% of the channels and result in NaNs in the output even when multiplied
+% with zeros or identity
+if k > 0 && isfield(input, 'trial') % check for raw data now only
+  cfg = [];
+  cfg.channel = addlabel;
+  data_unused = ft_selectdata(cfg, input);
+  tmp = cat(1, data_unused.trial{:});
+  if any(isnan(tmp(:)))
+    error('FieldTrip:NaNsinInputData', ['Your input data contains NaNs in channels that are unused '...
+      'in the supplied montage. This would result in undesired NaNs in the '...
+      'output data. Please remove these channels from the input data (using '...
+      'ft_selectdata) before attempting to apply the montage.']);
+  end
+end
 if istrue(keepunused)
   % add the channels that are not rereferenced to the input and output of the
   % montage
@@ -286,11 +306,11 @@ end
 
 % update the channel scaling if the input has different units than the montage expects
 if isfield(input, 'chanunit') && ~isequal(input.chanunit, montage.chanunitorg)
-  scale = scalingfactor(input.chanunit, montage.chanunitorg);
+  scale = ft_scalingfactor(input.chanunit, montage.chanunitorg);
   montage.tra = montage.tra * diag(scale);
   montage.chanunitorg = input.chanunit;
 elseif isfield(input, 'chanunitnew') && ~isequal(input.chanunitnew, montage.chanunitorg)
-  scale = scalingfactor(input.chanunitnew, montage.chanunitorg);
+  scale = ft_scalingfactor(input.chanunitnew, montage.chanunitorg);
   montage.tra = montage.tra * diag(scale);
   montage.chanunitorg = input.chanunitnew;
 end

@@ -2,7 +2,7 @@ function dat = ft_preproc_medianfilter(dat, order)
 
 % FT_PREPROC_MEDIANFILTER applies a median filter, which smooths the data with
 % a boxcar-like kernel except that it keeps steps in the data. This
-% function requires the Matlab Signal Processing toolbox.
+% function requires the MATLAB Signal Processing toolbox.
 %
 % Use as
 %   [dat] = ft_preproc_medianfilter(dat, order)
@@ -14,7 +14,7 @@ function dat = ft_preproc_medianfilter(dat, order)
 
 % Copyright (C) 2008, Robert Oostenveld
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -41,7 +41,7 @@ end
 pad = ceil(order/2);
 dat = ft_preproc_padding(dat, 'localmean', pad);
 
-hasfast = exist('fastmedfilt1d');
+hasfast = exist('fastmedfilt1d', 'file');
 if hasfast == 2 || hasfast == 3
   % use fast median filter mex file
   for k = 1:size(dat,1)

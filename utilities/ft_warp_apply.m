@@ -32,18 +32,28 @@ function [warped] = ft_warp_apply(M, input, method, tol)
 % If the method 'homogeneous' is selected, the input matrix M should be
 % a 4x4 homogenous transformation matrix.
 %
-% If any other method is selected, it is assumed that it specifies
-% the name of an auxiliary function that will, when given the input
-% parameter vector M, return an 4x4 homogenous transformation
-% matrix. Supplied functions in the warping toolbox are translate,
-% rotate, scale, rigidbody, globalrescale, traditional, affine,
-% perspective.
+% If the method 'sn2individual' or 'individual2sn' is selected, the input
+% M should be a structure based on nonlinear (warping) normalisation parameters
+% created by SPM8 for alignment between an individual structural MRI and the
+% template MNI brain.  These options call private functions of the same name.
+% M will have subfields like this:
+%     Affine: [4x4 double]
+%         Tr: [4-D double]
+%         VF: [1x1 struct]
+%         VG: [1x1 struct]
+%      flags: [1x1 struct]
+%
+% If any other method is selected, it is assumed that it specifies the name of an
+% auxiliary function that will, when given the input parameter vector M, return an
+% 4x4 homogenous transformation matrix. Supplied functions are 'translate', 'rotate',
+% 'scale', 'rigidbody', 'globalrescale', 'traditional', 'affine', 'perspective',
+% 'quaternion'.
 %
 % See also FT_WARP_OPTIM, FT_WARP_ERROR
 
-% Copyright (C) 2000-2013, Robert Oostenveld
+% Copyright (C) 2000-2016, Robert Oostenveld
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -152,13 +162,13 @@ elseif strcmp(method, 'homogenous') || strcmp(method, 'homogeneous')
       M(3,1) M(3,2)  0  M(3,3)
       ];
   end
-    
+
   %warped = M * [input'; ones(1, size(input, 1))];
   %warped = warped(1:3,:)';
-  
+
   % below achieves the same as lines 154-155
   warped = [input ones(size(input, 1),1)]*M(1:3,:)';
-  
+
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % using external function that returns a homogeneous transformation matrix
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

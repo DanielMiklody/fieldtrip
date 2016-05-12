@@ -19,7 +19,7 @@ function [data] = ft_preprocessing(cfg, data)
 % specify
 %   cfg.dataset      = string with the filename
 %   cfg.trl          = Nx3 matrix with the trial definition, see FT_DEFINETRIAL
-%   cfg.padding      = length to which the trials are padded for filtering (default = 0)
+%   cfg.padding      = length (in seconds) to which the trials are padded for filtering (default = 0)
 %   cfg.padtype      = string, type of padding (default: 'data' padding or
 %                      'mirror', depending on feasibility)
 %   cfg.continuous   = 'yes' or 'no' whether the file contains continuous data
@@ -94,11 +94,16 @@ function [data] = ft_preprocessing(cfg, data)
 %   cfg.precision     = 'single' or 'double' (default = 'double')
 %   cfg.absdiff       = 'no' or 'yes', computes absolute derivative (i.e.first derivative then rectify)
 %
+% Prperocessing options that only apply to MEG data are
+%   cfg.coordsys      = string, 'head' or 'dewar' (default = 'head')
+%   cfg.coilaccuracy  = can be empty or a number (0, 1 or 2) to specify the accuracy (default = [])
+%
 % Preprocessing options that you should only use for EEG data are
 %   cfg.reref         = 'no' or 'yes' (default = 'no')
 %   cfg.refchannel    = cell-array with new EEG reference channel(s), this can be 'all' for a common average reference
+%   cfg.refmethod     = 'avg' or 'median' (default = 'avg')
 %   cfg.implicitref   = 'label' or empty, add the implicit EEG reference as zeros (default = [])
-%   cfg.montage       = 'no' or a montage structure (default = 'no')
+%   cfg.montage       = 'no' or a montage structure, see FT_APPLY_MONTAGE (default = 'no')
 %
 % Preprocessing options that you should only use when you are calling FT_PREPROCESSING with
 % also the second input argument "data" are
@@ -146,7 +151,7 @@ function [data] = ft_preprocessing(cfg, data)
 
 % Copyright (C) 2003-2013, Robert Oostenveld, SMI, FCDC
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -164,18 +169,21 @@ function [data] = ft_preprocessing(cfg, data)
 %
 % $Id$
 
-revision = '$Id$';
+% these are used by the ft_preamble/ft_postamble function and scripts
+ft_revision = '$Id$';
+ft_nargin   = nargin;
+ft_nargout  = nargout;
 
 % do the general setup of the function
 ft_defaults
 ft_preamble init
-ft_preamble provenance
-ft_preamble trackconfig
 ft_preamble debug
 ft_preamble loadvar data
+ft_preamble provenance data
+ft_preamble trackconfig
 
-% the abort variable is set to true or false in ft_preamble_init
-if abort
+% the ft_abort variable is set to true or false in ft_preamble_init
+if ft_abort
   return
 end
 
@@ -190,10 +198,32 @@ cfg = ft_checkconfig(cfg, 'renamed', {'blcwindow', 'baselinewindow'});
 cfg = ft_checkconfig(cfg, 'renamed', {'output', 'export'});
 
 % set the defaults
-if ~isfield(cfg, 'method'),       cfg.method = 'trial';         end
-if ~isfield(cfg, 'channel'),      cfg.channel = {'all'};        end
-if ~isfield(cfg, 'removemcg'),    cfg.removemcg = 'no';         end
-if ~isfield(cfg, 'removeeog'),    cfg.removeeog = 'no';         end
+cfg.method        = ft_getopt(cfg, 'method', 'trial');
+cfg.channel       = ft_getopt(cfg, 'channel', 'all');
+cfg.removemcg     = ft_getopt(cfg, 'removemcg', 'no');
+cfg.removeeog     = ft_getopt(cfg, 'removeeog', 'no');
+cfg.precision     = ft_getopt(cfg, 'precision', 'double');     
+cfg.padding       = ft_getopt(cfg, 'padding', 0);          % padding is only done when filtering
+cfg.paddir        = ft_getopt(cfg, 'paddir', 'both');         
+cfg.headerformat  = ft_getopt(cfg, 'headerformat');        % is passed to low-level function, empty implies autodetection
+cfg.dataformat    = ft_getopt(cfg, 'dataformat');          % is passed to low-level function, empty implies autodetection
+cfg.coordsys      = ft_getopt(cfg, 'coordsys', 'head');    % is passed to low-level function
+cfg.coilaccuracy  = ft_getopt(cfg, 'coilaccuracy');        % is passed to low-level function
+
+% these options relate to the actual preprocessing, it is neccessary to specify here because of padding
+cfg.dftfilter     = ft_getopt(cfg, 'dftfilter', 'no');
+cfg.lpfilter      = ft_getopt(cfg, 'lpfilter', 'no');
+cfg.hpfilter      = ft_getopt(cfg, 'hpfilter', 'no');
+cfg.bpfilter      = ft_getopt(cfg, 'bpfilter', 'no');
+cfg.bsfilter      = ft_getopt(cfg, 'bsfilter', 'no');
+cfg.medianfilter  = ft_getopt(cfg, 'medianfilter', 'no');
+cfg.padtype       = ft_getopt(cfg, 'padtype', 'data');
+
+% these options relate to the actual preprocessing, it is neccessary to specify here because of channel selection
+cfg.reref         = ft_getopt(cfg, 'reref', 'no');
+cfg.refchannel    = ft_getopt(cfg, 'refchannel', {});
+cfg.refmethod     = ft_getopt(cfg, 'refmethod', 'avg');
+cfg.implicitref   = ft_getopt(cfg, 'implicitref');
 
 if ~isfield(cfg, 'feedback'),
   if strcmp(cfg.method, 'channel')
@@ -202,26 +232,6 @@ if ~isfield(cfg, 'feedback'),
     cfg.feedback = 'text';
   end
 end
-
-if ~isfield(cfg, 'precision'),    cfg.precision = 'double';     end
-if ~isfield(cfg, 'padding'),      cfg.padding = 0;              end % padding is only done when filtering
-if ~isfield(cfg, 'paddir'),       cfg.paddir  = 'both';         end
-if ~isfield(cfg, 'headerformat'), cfg.headerformat = [];        end % is passed to low-level function, empty implies autodetection
-if ~isfield(cfg, 'dataformat'),   cfg.dataformat = [];          end % is passed to low-level function, empty implies autodetection
-
-% these options relate to the actual preprocessing, it is neccessary to specify here because of padding
-if ~isfield(cfg, 'dftfilter'),    cfg.dftfilter = 'no';         end
-if ~isfield(cfg, 'lpfilter'),     cfg.lpfilter = 'no';          end
-if ~isfield(cfg, 'hpfilter'),     cfg.hpfilter = 'no';          end
-if ~isfield(cfg, 'bpfilter'),     cfg.bpfilter = 'no';          end
-if ~isfield(cfg, 'bsfilter'),     cfg.bsfilter = 'no';          end
-if ~isfield(cfg, 'medianfilter'), cfg.medianfilter = 'no';      end
-% these options relate to the actual preprocessing, it is neccessary to specify here because of channel selection
-if ~isfield(cfg, 'reref'),        cfg.reref = 'no';             end
-if ~isfield(cfg, 'refchannel'),   cfg.refchannel = {};          end
-if ~isfield(cfg, 'implicitref'),  cfg.implicitref = [];         end
-
-cfg.padtype = ft_getopt(cfg, 'padtype', 'data');
 
 % support for the following options was removed on 20 August 2004 in Revision 1.46
 if isfield(cfg, 'emgchannel'), error('EMG specific preprocessing is not supported any more'); end
@@ -239,7 +249,7 @@ end
 if isfield(cfg, 'nsdf'),
   % FIXME this should be handled by ft_checkconfig, but ft_checkconfig does not allow yet for
   % specific errors in the case of forbidden fields
-  error('the use of cfg.nsdf is deprecated. fieldtrip tries to determine the bit resolution automatically. you can overrule this by specifying cfg.dataformat and cfg.headerformat. see: http://fieldtrip.fcdonders.nl/faq/i_have_problems_reading_in_neuroscan_.cnt_files._how_can_i_fix_this');
+  error('The use of cfg.nsdf is deprecated. FieldTrip tries to determine the bit resolution automatically. You can overrule this by specifying cfg.dataformat and cfg.headerformat. See: http://fieldtrip.fcdonders.nl/faq/i_have_problems_reading_in_neuroscan_.cnt_files._how_can_i_fix_this');
 end
 
 if isfield(cfg, 'export') && ~isempty(cfg.export)
@@ -249,7 +259,9 @@ if isfield(cfg, 'export') && ~isempty(cfg.export)
   end
 end
 
+% data can be passed by the user, but might also have been loaded from cfg.inputfile
 hasdata = exist('data', 'var');
+
 if hasdata
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % do preprocessing of data that has already been read into memory
@@ -273,7 +285,7 @@ if hasdata
         strcmp(cfg.medianfilter, 'yes')
       padding = round(cfg.padding * data.fsample);
       if strcmp(cfg.padtype, 'data')
-        warning_once('datapadding not possible with in-memory data - padding will be performed by data mirroring');
+        ft_warning('datapadding not possible with in-memory data - padding will be performed by data mirroring');
         cfg.padtype = 'mirror';
       end
     else
@@ -298,27 +310,17 @@ if hasdata
   end
   
   % set the defaults
-  if ~isfield(cfg, 'trials'), cfg.trials = 'all'; end
+  cfg.trials = ft_getopt(cfg, 'trials', 'all', 1);
   
   % select trials of interest
-  if ~strcmp(cfg.trials, 'all')
-    data = ft_selectdata(data, 'rpt', cfg.trials);
-  end
-  
-  % translate the channel groups (like 'all' and 'MEG') into real labels
-  cfg.channel = ft_channelselection(cfg.channel, data.label);
-  rawindx = match_str(data.label, cfg.channel);
+  tmpcfg = keepfields(cfg, {'channel', 'trials'});
+  data   = ft_selectdata(tmpcfg, data);
+  % restore the provenance information
+  [cfg, data] = rollback_provenance(cfg, data);
   
   % this will contain the newly processed data
-  dataout = [];
-  
   % some fields from the input should be copied over in the output
-  copyfield = {'hdr', 'fsample', 'grad', 'elec', 'sampleinfo', 'trialinfo', 'topo', 'topolabel', 'unmixing'};
-  for i=1:length(copyfield)
-    if isfield(data, copyfield{i})
-      dataout.(copyfield{i}) = data.(copyfield{i});
-    end
-  end
+  dataout = keepfields(data, {'hdr', 'fsample', 'grad', 'elec', 'sampleinfo', 'trialinfo', 'topo', 'topolabel', 'unmixing'});
   
   ft_progress('init', cfg.feedback, 'preprocessing');
   ntrl = length(data.trial);
@@ -351,9 +353,9 @@ if hasdata
     end
     
     data.trial{i} = ft_preproc_padding(data.trial{i}, cfg.padtype, begpadding, endpadding);
-    data.time{i} =  ft_preproc_padding(data.time{i}, 'nan',       begpadding, endpadding); % pad time-axis with nans (see bug2220)
-    % do the preprocessing on the selected channels
-    [dataout.trial{i}, dataout.label, dataout.time{i}, cfg] = preproc(data.trial{i}(rawindx,:), data.label(rawindx),  data.time{i}, cfg, begpadding, endpadding);
+    data.time{i}  = ft_preproc_padding(data.time{i}, 'nan',        begpadding, endpadding); % pad time-axis with nans (see bug2220)
+    % do the filtering etc.
+    [dataout.trial{i}, dataout.label, dataout.time{i}, cfg] = preproc(data.trial{i}, data.label,  data.time{i}, cfg, begpadding, endpadding);
     
   end % for all trials
   
@@ -386,13 +388,13 @@ else
   end
   
   % check if the input cfg is valid for this function
-  cfg = ft_checkconfig(cfg, 'dataset2files', {'yes'});
-  cfg = ft_checkconfig(cfg, 'required', {'headerfile', 'datafile'});
+  cfg = ft_checkconfig(cfg, 'dataset2files', 'yes');
+  cfg = ft_checkconfig(cfg, 'required',   {'headerfile', 'datafile'});
   cfg = ft_checkconfig(cfg, 'renamed',    {'datatype', 'continuous'});
   cfg = ft_checkconfig(cfg, 'renamedval', {'continuous', 'continuous', 'yes'});
   
   % read the header
-  hdr = ft_read_header(cfg.headerfile, 'headerformat', cfg.headerformat);
+  hdr = ft_read_header(cfg.headerfile, 'headerformat', cfg.headerformat, 'coordsys', cfg.coordsys, 'coilaccuracy', cfg.coilaccuracy);
   
   % this option relates to reading over trial boundaries in a pseudo-continuous dataset
   if ~isfield(cfg, 'continuous')
@@ -622,6 +624,9 @@ else
     if isfield(hdr, 'elec')
       dataout.elec             = hdr.elec;             % EEG information in header (f.e. headerformat = 'neuromag_fif')
     end
+    if isfield(hdr, 'opto')
+      dataout.opto             = hdr.opto;             % NIRS  information in header (f.e. headerformat = 'artinis')
+    end
     
   end % for all channel groups
   
@@ -630,15 +635,12 @@ end % if hasdata
 % do the general cleanup and bookkeeping at the end of the function
 ft_postamble debug
 ft_postamble trackconfig
-ft_postamble provenance
-
-if hasdata
-  ft_postamble previous data
-end
+ft_postamble previous data
 
 % rename the output variable to accomodate the savevar postamble
 data = dataout;
 
-ft_postamble history data
-ft_postamble savevar data
+ft_postamble provenance data
+ft_postamble history    data
+ft_postamble savevar    data
 

@@ -6,7 +6,7 @@ function ft_select_channel(handle, eventdata, varargin)
 %
 % Use as
 %   label = ft_select_channel(h, eventdata, ...)
-% The first two arguments are automatically passed by Matlab to any
+% The first two arguments are automatically passed by MATLAB to any
 % callback function.
 %
 % Additional options should be specified in key-value pairs and can be
@@ -41,7 +41,7 @@ function ft_select_channel(handle, eventdata, varargin)
 
 % Copyright (C) 2009, Robert Oostenveld
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify

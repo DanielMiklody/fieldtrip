@@ -10,10 +10,19 @@ function file = dccnpath(filename)
 % drive is mapped to H:. The function basically converts between H:\ and
 % /home and uses the appropriate file seperator depending on the operating
 % system.
+%
+% An in-place implementation of this function can be realized with an
+% anonymous function like this:
+%
+% if ispc
+%   dccnpath = @(filename) strrep(strrep(filename,'/home','H:'),'/','\');
+% else
+%   dccnpath = @(filename) strrep(strrep(filename,'H:','/home'),'\','/');
+% end
 
 % Copyright (C) 2012, Donders Centre for Cognitive Neuroimaging, Nijmegen, NL
 %
-% This file is part of FieldTrip, see http://www.ru.nl/neuroimaging/fieldtrip
+% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
 %
 %    FieldTrip is free software: you can redistribute it and/or modify
@@ -39,4 +48,9 @@ else
   file = strrep(file,'\','/');
 end
 
+[p, f, x] = fileparts(file);
+if ~exist(file, 'file') && exist([f x], 'file')
+  warning('using local copy %s instead of %s', [f x], file);
+  file = [f x];
 end
+

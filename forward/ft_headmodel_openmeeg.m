@@ -120,7 +120,7 @@ try
   for ii=1:length(vol.bnd)
     [junk,tname] = fileparts(tempname);
     bndfile{ii} = [tname '.tri'];
-    om_save_tri(bndfile{ii}, bndom(ii).pnt, bndom(ii).tri);
+    om_save_tri(bndfile{ii}, bndom(ii).pos, bndom(ii).tri);
   end
   
   % these will hold the shell script and the inverted system matrix
@@ -211,7 +211,7 @@ delete(exefile);
 function ok = checknormals(bnd)
 % FIXME: this method is rigorous only for star shaped surfaces
 ok = 0;
-pnt = bnd.pnt;
+pnt = bnd.pos;
 tri = bnd.tri;
 % translate to the center
 org = mean(pnt,1);

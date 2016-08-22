@@ -129,6 +129,7 @@ isdip           = ft_datatype(data, 'dip');
 ismvar          = ft_datatype(data, 'mvar');
 isfreqmvar      = ft_datatype(data, 'freqmvar');
 ischan          = ft_datatype(data, 'chan');
+ismesh          = ft_datatype(data, 'mesh');
 % FIXME use the istrue function on ismeg and hasxxx options
 
 if ~isequal(feedback, 'no')
@@ -202,7 +203,22 @@ if ~isequal(feedback, 'no')
       fprintf('the input is chan data with %d channels\n', nchan);
     end
   end
-end % give feedback
+elseif ismesh
+  data = fixpos(data);
+  if numel(data)==1
+    if isfield(data,'tri')  
+      fprintf('the input is mesh data with %d vertices and %d triangles\n', size(data.pos,1), size(data.tri,1));
+    elseif isfield(data,'hex')    
+      fprintf('the input is mesh data with %d vertices and %d hexahedrons\n', size(data.pos,1), size(data.hex,1));
+    elseif isfield(data,'tet')    
+      fprintf('the input is mesh data with %d vertices and %d tetrahedrons\n', size(data.pos,1), size(data.tet,1));  
+    else
+      fprintf('the input is mesh data with %d vertices', size(data.pos,1));  
+    end  
+  else
+    fprintf('the input is mesh data multiple surfaces\n');
+  end
+end % give feedback    
 
 if issource && isvolume
   % it should be either one or the other: the choice here is to represent it as volume description since that is simpler to handle
@@ -278,6 +294,8 @@ if ~isempty(dtype)
         okflag = okflag + issegmentation;
       case 'parcellation'
         okflag = okflag + isparcellation;
+      case 'mesh'
+        okflag = okflag + ismesh;
     end % switch dtype
   end % for dtype
   
@@ -1338,6 +1356,8 @@ else
   % concatenate all trials
   tmptrial = nan(ntrial, nchan, length(time));
   
+  begsmp = nan(ntrial, 1);
+  endsmp = nan(ntrial, 1);
   for i=1:ntrial
     begsmp(i) = nearest(time, data.time{i}(1));
     endsmp(i) = nearest(time, data.time{i}(end));

@@ -32,6 +32,7 @@ function [cfg] = ft_databrowser(cfg, data)
 %                                 viewmode ('some' plots one in every ten labels; useful when plotting a
 %                                 large number of channels at a time)
 %   cfg.ploteventlabels         = 'type=value', 'colorvalue' (default = 'type=value');
+%   cfg.plotevents              = 'no' or 'yes', whether to plot event markers. (default is 'yes')
 %   cfg.viewmode                = string, 'butterfly', 'vertical', 'component' for visualizing components e.g. from an ICA (default is 'butterfly')
 %   cfg.artfctdef.xxx.artifact  = Nx2 matrix with artifact segments see FT_ARTIFACT_xxx functions
 %   cfg.selectfeature           = string, name of feature to be selected/added (default = 'visual')
@@ -39,6 +40,8 @@ function [cfg] = ft_databrowser(cfg, data)
 %   cfg.colorgroups             = 'sequential' 'allblack' 'labelcharx' (x = xth character in label), 'chantype' or
 %                                  vector with length(data/hdr.label) defining groups (default = 'sequential')
 %   cfg.channelcolormap         = COLORMAP (default = customized lines map with 15 colors)
+%   cfg.verticalpadding         = number or 'auto', padding to be added to top and bottom of plot to avoid channels largely dissappearing when viewmode = 'vertical'/'component'  (default = 'auto')
+%                                 padding is expressed as a proportion of the total height added to the top, and bottom) ('auto' adds padding depending on the number of channels being plotted)
 %   cfg.selfun                  = string, name of function which is evaluated using the right-click context menu
 %                                  The selected data and cfg.selcfg are passed on to this function.
 %   cfg.selcfg                  = configuration options for function in cfg.selfun
@@ -195,6 +198,7 @@ cfg.plotlabels      = ft_getopt(cfg, 'plotlabels', 'some');
 cfg.event           = ft_getopt(cfg, 'event');                       % this only exists for backward compatibility and should not be documented
 cfg.continuous      = ft_getopt(cfg, 'continuous');                  % the default is set further down in the code, conditional on the input data
 cfg.ploteventlabels = ft_getopt(cfg, 'ploteventlabels', 'type=value');
+cfg.plotevents      = ft_getopt(cfg, 'plotevents', 'yes');
 cfg.precision       = ft_getopt(cfg, 'precision', 'double');
 cfg.zlim            = ft_getopt(cfg, 'zlim', 'maxmin');
 cfg.compscale       = ft_getopt(cfg, 'compscale', 'global');
@@ -206,6 +210,7 @@ cfg.editfontunits   = ft_getopt(cfg, 'editfontunits', 'points');     % inches, c
 cfg.axisfontsize    = ft_getopt(cfg, 'axisfontsize', 10);
 cfg.axisfontunits   = ft_getopt(cfg, 'axisfontunits', 'points');     % inches, centimeters, normalized, points, pixels
 cfg.linewidth       = ft_getopt(cfg, 'linewidth', 0.5);
+cfg.verticalpadding = ft_getopt(cfg, 'verticalpadding', 'auto');
 
 if ~isfield(cfg, 'viewmode')
   % butterfly, vertical, component
@@ -1736,7 +1741,27 @@ ax(1) = min(opt.laytime.pos(:,1) - opt.laytime.width/2);
 ax(2) = max(opt.laytime.pos(:,1) + opt.laytime.width/2);
 ax(3) = min(opt.laytime.pos(:,2) - opt.laytime.height/2);
 ax(4) = max(opt.laytime.pos(:,2) + opt.laytime.height/2);
+% add white space to bottom and top so channels are not out-of-axis for the majority
+% NOTE: there is a second spot where this is done below, specifically for viewmode = component (also need to be here), which should be kept the same as this
+if any(strcmp(cfg.viewmode,{'vertical','component'})) 
+  % determine amount of vertical padding using cfg.verticalpadding
+  if ~isnumeric(cfg.verticalpadding) && strcmp(cfg.verticalpadding,'auto')
+    % determine amount of padding using the number of channels
+    if numel(cfg.channel)<=6
+      wsfac = 0;
+    elseif numel(cfg.channel)>6 && numel(cfg.channel)<=10
+      wsfac = 0.01 *  (ax(4)-ax(3));
+    else
+      wsfac = 0.02 *  (ax(4)-ax(3));
+    end
+  else
+    wsfac = cfg.verticalpadding * (ax(4)-ax(3));
+  end
+  ax(3) = ax(3) - wsfac;
+  ax(4) = ax(4) + wsfac;
+end
 axis(ax)
+
 
 % determine a single local axis that encompasses all channels
 % this is in relative figure units
@@ -1771,6 +1796,7 @@ end % for each of the artifact channels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 delete(findobj(h, 'tag', 'event'));
 
+if strcmp(cfg.plotevents, 'yes')
 if any(strcmp(cfg.viewmode, {'butterfly', 'component', 'vertical'}))
 
   if strcmp(cfg.ploteventlabels , 'colorvalue') && ~isempty(opt.event)
@@ -1826,6 +1852,7 @@ if any(strcmp(cfg.viewmode, {'butterfly', 'component', 'vertical'}))
   end
 
 end % if viewmode appropriate for events
+end % if user wants to see event marks
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %fprintf('plotting data...\n');
@@ -2071,6 +2098,23 @@ if strcmp(cfg.viewmode, 'component')
   ax(2) = max(opt.laytime.pos(:,1) + opt.laytime.width/2);
   ax(3) = min(opt.laytime.pos(:,2) - opt.laytime.height/2);
   ax(4) = max(opt.laytime.pos(:,2) + opt.laytime.height/2);
+  % add white space to bottom and top so channels are not out-of-axis for the majority
+  % NOTE: there is another spot above with the same code, which should be kept the same as this
+  % determine amount of vertical padding using cfg.verticalpadding
+  if ~isnumeric(cfg.verticalpadding) && strcmp(cfg.verticalpadding,'auto')
+    % determine amount of padding using the number of channels
+    if numel(cfg.channel)<=6
+      wsfac = 0;
+    elseif numel(cfg.channel)>6 && numel(cfg.channel)<=10
+      wsfac = 0.01 *  (ax(4)-ax(3));
+    else
+      wsfac = 0.02 *  (ax(4)-ax(3));
+    end
+  else
+    wsfac = cfg.verticalpadding * (ax(4)-ax(3));
+  end
+  ax(3) = ax(3) - wsfac;
+  ax(4) = ax(4) + wsfac;
   axis(ax)
 end % plotting topographies
 

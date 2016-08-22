@@ -62,7 +62,7 @@ try
     % write conductivity and geometry files
     om_write_geom(geomfile,bndfile);
     om_write_cond(condfile,vol.cond);
-    om_save_sym(vol.mat,hmvinvfile);
+    om_save_sym(vol.mat,hmvinvfile,'binary');
 
     % handle electrode file
     elec=ft_convert_units(elec,vol.unit);

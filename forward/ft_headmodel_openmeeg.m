@@ -180,7 +180,7 @@ try
     end
   end
   vol.mat = om_load_sym(hminvfile,'binary');
-  vol.matA = om_load_sym(hmfile,'binary');
+  %vol.matA = om_load_sym(hmfile,'binary');
   cleaner(vol,bndfile,condfile,geomfile,hmfile,hminvfile,exefile)
   cd(tmpfolder)
 catch

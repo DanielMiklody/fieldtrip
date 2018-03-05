@@ -108,6 +108,8 @@ try
     else
         dos(['./' exefile]);
     end
+%    gain.eit = om_load_full(eitsourcefile,'binary');
+%    gain.h2m = om_load_sparse(h2mfile,'binary');
     gain = om_load_full(gainfile,'binary');
     toc(stopwatch);
     cleaner(vol,bndfile,condfile,geomfile,exefile,electrodefile,eitsourcefile,hmvinvfile,gainfile,h2mfile)
@@ -115,7 +117,7 @@ try
 catch
     warning('an error ocurred while running OpenMEEG');
     disp(lasterr);
-    cleaner(vol,bndfile,condfile,geomfile,exefile,electrodefile,eitsourcefile,hmvinvfile,gainfile)
+    cleaner(vol,bndfile,condfile,geomfile,exefile,electrodefile,eitsourcefile,hmvinvfile,gainfile,h2mfile)
     cd(tmpfolder)
 end
 

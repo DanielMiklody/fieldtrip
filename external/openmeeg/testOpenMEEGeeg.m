@@ -89,6 +89,7 @@ function [rdms,mags] = run_bem_computation(r,c,pos)
     
     cfg.vol = vol_bem;
     cfg.grid.pos = pos;
+    cfg.grid.unit = 'm';
     cfg.elec = sens;
     grid = ft_prepare_leadfield(cfg);
 

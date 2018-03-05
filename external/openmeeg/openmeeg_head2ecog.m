@@ -1,4 +1,4 @@
-function [gain] = openmeeg_sensinterpolmat(elec, vol)
+function [gain] = openmeeg_head2ecog(vol)
 
 % openmeeg_sensinterpolmat computes the OpenMEEG sensor interpolation matrix
 % adopted from openmeeg_DSM
@@ -39,28 +39,28 @@ try
     [~,tname] = fileparts(tempname);
     electrodefile = [tname '.elec'];
     [~,tname] = fileparts(tempname);
-    h2mfile = [tname '.bin'];
+    h2ecogfile = [tname '.bin'];
 
     % write conductivity and geometry files
     om_write_geom(geomfile,bndfile);
     om_write_cond(condfile,vol.cond);
 
     % handle electrode file
-    elec=ft_convert_units(elec,vol.unit);
-    om_save_full(elec.elecpos,electrodefile,'ascii');
+    %elec=ft_convert_units(elec,vol.unit);
+    om_save_full(bndom(4).pos,electrodefile,'ascii');
 
     % Exe file
     efid = fopen(exefile, 'w');
     omp_num_threads = feature('numCores');
 
-    str = ' -H2EM';
+    str = ' -H2ECOGM';
 
     if ~ispc
       fprintf(efid,'#!/usr/bin/env bash\n');
       fprintf(efid,['export OMP_NUM_THREADS=',num2str(omp_num_threads),'\n']);
-      fprintf(efid,['om_assemble' str ' ./',geomfile,' ./',condfile,' ./',electrodefile,' ./',h2mfile,' 2>&1 > /dev/null\n']);
+      fprintf(efid,['om_assemble' str ' ./',geomfile,' ./',condfile,' ./',electrodefile,' ./',h2ecogfile,' 2>&1 > /dev/null\n']);
     else
-      fprintf(efid,['om_assemble' str ' ./',geomfile,' ./',condfile,' ./',electrodefile,' ./',h2mfile,'\n']);
+      fprintf(efid,['om_assemble' str ' ./',geomfile,' ./',condfile,' ./',electrodefile,' ./',h2ecogfile,'\n']);
     end
     
     fclose(efid);
@@ -74,21 +74,21 @@ end
 
 try
     % execute OpenMEEG and read the resulting file
-    disp(['Assembling OpenMEEG Sensor Interpolation matrix']);
+    disp(['Assembling OpenMEEG ECog matrix']);
     stopwatch = tic;
     if ispc
         dos([exefile]);
     else
         dos(['./' exefile]);
     end
-    gain = om_load_sparse(h2mfile,'binary');
+    gain = om_load_sparse(h2ecogfile,'binary');
     toc(stopwatch);
-    cleaner(vol,bndfile,condfile,geomfile,exefile,electrodefile,h2mfile)
+    cleaner(vol,bndfile,condfile,geomfile,exefile,electrodefile,h2ecogfile)
     cd(tmpfolder)
 catch
     warning('an error ocurred while running OpenMEEG');
     disp(lasterr);
-    cleaner(vol,bndfile,condfile,geomfile,exefile,electrodefile,h2mfile)
+    cleaner(vol,bndfile,condfile,geomfile,exefile,electrodefile,h2ecogfile)
     cd(tmpfolder)
 end
 

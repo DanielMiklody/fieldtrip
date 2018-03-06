@@ -1,5 +1,5 @@
 % FT_PREAMBLE_LOADVAR is a helper script that optionally loads one or
-% multiple fieldtrip data structures from mat files on disk, as an
+% multiple FieldTrip data structures from mat files on disk, as an
 % alternative to the user specifying the data structures as input variables
 % to the calling function. This makes use of the cfg.inputfile variable.
 %
@@ -43,7 +43,7 @@ if isfield(cfg, 'inputfile') && ~isempty(cfg.inputfile)
 
   % the input data should be read from file
   if (ft_nargin>1)
-    error('cfg.inputfile should not be used in conjunction with giving input data to this function');
+    ft_error('cfg.inputfile should not be used in conjunction with giving input data to this function');
   else
     if isfield(cfg, 'inputlock') && ~isempty(cfg.inputlock)
       mutexlock(cfg.inputlock);

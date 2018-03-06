@@ -61,7 +61,7 @@ elseif size(cfg.input,1) == 1
     fullnames{k} = [basedir filesep D(k).name];
   end
 else
-  error('Don''t know what to do with cfg.input');  
+  ft_error('Don''t know what to do with cfg.input');  
 end
 
 DN = tempname; % Dicom Name
@@ -85,7 +85,7 @@ for n=1:N
     fclose(f);
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % create a fieldtrip compatible header structure
+    % create a FieldTrip compatible header structure
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     hdr = [];
     hdr.nChans = prod(NH.dim);

@@ -27,6 +27,8 @@ function ft_progress(varargin)
 %      pause(0.1);
 %    end
 %    ft_progress('close')
+%
+% See also WAITBAR
 
 % Copyright (C) 2004-2008, Robert Oostenveld
 %
@@ -270,7 +272,7 @@ else
       strlen = strlentmp - strlen;
     end
 
-% the following options are unused in fieldtrip (as of April 17 2012), and seem
+% the following options are unused in FieldTrip (as of April 17 2012), and seem
 % semantically incompatible with the implementation of the \b-ing, so I
 % think removal is appropriate.
 %

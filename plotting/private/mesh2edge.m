@@ -7,6 +7,8 @@ function [newbnd] = mesh2edge(bnd)
 %
 % Use as
 %   [edge] = mesh2edge(mesh)
+%
+% See also POLY2TRI
 
 % Copyright (C) 2013-2015, Robert Oostenveld
 %
@@ -97,7 +99,7 @@ elseif isfield(bnd, 'hex')
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% SUBFUNCTION, see http://bugzilla.fcdonders.nl/show_bug.cgi?id=1833#c12
+% SUBFUNCTION, see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=1833#c12
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function indx = findsingleoccurringrows(X)
 [X, indx] = sortrows(X);

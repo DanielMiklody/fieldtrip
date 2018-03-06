@@ -47,7 +47,7 @@ function ft_realtime_fmriproxy(cfg)
 % $Id$
 
 % set the defaults
-if isempty(cfg) | ~isfield(cfg, 'target') | ~isfield(cfg.target, 'datafile')
+if isempty(cfg) || ~isfield(cfg, 'target') || ~isfield(cfg.target, 'datafile')
   cfg.target.datafile = 'buffer://localhost:1972';  
 end
 cfg.target.dataformat = [];    
@@ -72,7 +72,7 @@ nifti.pixdim = [3.5 3.5 3.5]; % size of voxel in mm
 nifti.slice_duration = Tslice;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% create a fieldtrip compatible header structure
+% create a FieldTrip compatible header structure
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 hdr = [];
 hdr.nChans = prod(voxels);

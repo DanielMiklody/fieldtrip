@@ -70,7 +70,6 @@ if numel(headmodel.bnd)>1
 end
 
 if isempty(conductivity)
-
   ft_warning('No conductivity is declared, Assuming standard values\n')
   if numboundaries == 1
     conductivity = 1;
@@ -78,13 +77,11 @@ if isempty(conductivity)
     % skin/skull/brain
     conductivity = [1 1/80 1] * 0.33;
   else
-
     ft_error('Conductivity values are required for 2 shells. More than 3 shells not allowed')
   end
   headmodel.cond = conductivity;
 else
   if numel(conductivity)~=numboundaries
-
     ft_error('a conductivity value should be specified for each compartment');
   end
   % update the order of the compartments

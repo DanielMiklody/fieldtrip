@@ -33,7 +33,7 @@ try
         if ~ok
           bndom(i).tri = fliplr(bndom(i).tri);
         end
-        om_save_tri(bndfile{i}, bndom(i).pnt, bndom(i).tri);
+        om_save_tri(bndfile{i}, bndom(i).pos, bndom(i).tri);
     end
     
     % these will hold the shell script and the inverted system matrix
@@ -120,7 +120,7 @@ if exist(dsmfile,'file'),delete(dsmfile);end
 function ok = checknormals(bnd)
 % FIXME: this method is rigorous only for star shaped surfaces
 ok = 0;
-pnt = bnd.pnt;
+pnt = bnd.pos;
 tri = bnd.tri;
 % translate to the center
 org = mean(pnt,1);

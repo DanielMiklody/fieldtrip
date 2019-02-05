@@ -36,6 +36,7 @@ function headmodel = ft_headmodel_openmeeg(bnd, varargin)
 ft_hastoolbox('openmeeg', 1);  % add to path (if not yet on path)
 openmeeg_license;              % show the license (only once)
 prefix = om_checkombin;        % check the installation of the binaries
+
 if(~ispc) % if Linux/Mac, set number of threads
     omp_num_threads = feature('numCores');
     prefix = ['export OMP_NUM_THREADS=' num2str(omp_num_threads) ' && ' prefix];
@@ -59,7 +60,7 @@ bnd = fixpos(bnd);
 
 % start with an empty volume conductor
 headmodel = [];
-
+headmodel.omversion = om_checkver;
 % determine the number of compartments
 numboundaries = length(bnd);
 
@@ -171,8 +172,9 @@ try
     if(om_status ~= 0) % status = 0 if successful
         ft_error('Aborting OpenMEEG pipeline due to above error.');
     end
-    %headmodel.matA = om_load_sym(hmfile,'binary');
-    headmodel.mat = inv(om_load_sym(hmfile,'binary'));
+    headmodel.matA = om_load_sym(hmfile,'binary');
+%     headmodel.mat = inv(om_load_sym(hmfile,'binary'));
+    headmodel.mat = inv(headmodel.matA);
 
     rmdir(workdir,'s'); % remove workdir with intermediate files
 catch

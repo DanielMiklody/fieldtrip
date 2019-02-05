@@ -128,7 +128,8 @@ function ft_sourceplot(cfg, functional, anatomical)
 %                       'auto', full range of data
 %                       [min max], coordinates of first and last slice in voxels
 %   cfg.slicedim      = dimension to slice 1 (x-axis) 2(y-axis) 3(z-axis) (default = 3)
-%   cfg.title         = string, title of the figure window
+%   cfg.title         = string, title of the plot
+%   cfg.figurename    = string, title of the figure window
 %
 % When cfg.method='surface', the functional data will be rendered onto a cortical mesh
 % (can be an inflated mesh). If the input source data contains a tri-field (i.e. a
@@ -280,7 +281,8 @@ cfg.funparameter  = ft_getopt(cfg, 'funparameter',  []);
 cfg.maskparameter = ft_getopt(cfg, 'maskparameter', []);
 cfg.maskstyle     = ft_getopt(cfg, 'maskstyle',     'opacity');
 cfg.downsample    = ft_getopt(cfg, 'downsample',    1);
-cfg.title         = ft_getopt(cfg, 'title',         '');
+cfg.title         = ft_getopt(cfg, 'title',         []);
+cfg.figurename    = ft_getopt(cfg, 'figurename',    []);
 cfg.atlas         = ft_getopt(cfg, 'atlas',         []);
 cfg.marker        = ft_getopt(cfg, 'marker',        []);
 cfg.markersize    = ft_getopt(cfg, 'markersize',    5);
@@ -655,7 +657,10 @@ if hasfun && ~hasmsk && isfield(functional, 'inside')
   opacmax = 1;
   % make intelligent mask
   if isequal(cfg.method, 'surface')
-    msk(functional.inside) = 1;
+    msk(functional.inside&isfinite(functional.(cfg.funparameter))) = 1;
+    if any(functional.inside&~isfinite(functional.(cfg.funparameter)))
+      ft_warning('functional data contains %d NaNs labeled as inside', sum(functional.inside&~isfinite(functional.(cfg.funparameter))));
+    end    
   else
     if hasana
       msk(functional.inside) = 0.5; % so anatomy is visible
@@ -705,7 +710,12 @@ end
 h = figure('visible', cfg.visible);
 set(h, 'color', [1 1 1]);
 set(h, 'renderer', cfg.renderer);
+if ~isempty(cfg.figurename)
+  % this appears as the name of the window
+  set(h, 'name', cfg.figurename);
+end
 if ~isempty(cfg.title)
+  % this appears above the axes
   title(cfg.title);
 end
 
@@ -1468,13 +1478,33 @@ opt.ijk = opt.ijk(1:3);
 str1 = sprintf('voxel %d, indices [%d %d %d]', sub2ind(functional.dim(1:3), xi, yi, zi), opt.ijk);
 
 if isfield(functional, 'coordsys') && isfield(functional, 'unit')
-  str2 = sprintf('%s coordinates [%.1f %.1f %.1f] %s', functional.coordsys, xyz(1:3), functional.unit);
+  % print the location with mm accuracy
+  switch functional.unit
+    case 'm'
+      str2 = sprintf('%s coordinates [%.3f %.3f %.3f] %s', functional.coordsys, xyz(1:3), functional.unit);
+    case 'cm'
+      str2 = sprintf('%s coordinates [%.1f %.1f %.1f] %s', functional.coordsys, xyz(1:3), functional.unit);
+    case 'mm'
+      str2 = sprintf('%s coordinates [%.0f %.0f %.0f] %s', functional.coordsys, xyz(1:3), functional.unit);
+    otherwise
+      str2 = sprintf('%s coordinates [%f %f %f] %s', functional.coordsys, xyz(1:3), functional.unit);
+  end
 elseif ~isfield(functional, 'coordsys') && isfield(functional, 'unit')
-  str2 = sprintf('location [%.1f %.1f %.1f] %s', xyz(1:3), functional.unit);
+  % print the location with mm accuracy
+  switch functional.unit
+    case 'm'
+      str2 = sprintf('location [%.3f %.3f %.3f] %s', xyz(1:3), functional.unit);
+    case 'cm'
+      str2 = sprintf('location [%.1f %.1f %.1f] %s', xyz(1:3), functional.unit);
+    case 'mm'
+      str2 = sprintf('location [%.0f %.0f %.0f] %s', xyz(1:3), functional.unit);
+    otherwise
+      str2 = sprintf('location [%f %f %f] %s', xyz(1:3), functional.unit);
+  end
 elseif isfield(functional, 'coordsys') && ~isfield(functional, 'unit')
-  str2 = sprintf('%s coordinates [%.1f %.1f %.1f]', functional.coordsys, xyz(1:3));
+  str2 = sprintf('%s coordinates [%.3f %.3f %.3f]', functional.coordsys, xyz(1:3));
 elseif ~isfield(functional, 'coordsys') && ~isfield(functional, 'unit')
-  str2 = sprintf('location [%.1f %.1f %.1f]', xyz(1:3));
+  str2 = sprintf('location [%.3f %.3f %.3f]', xyz(1:3));
 else
   str2 = '';
 end

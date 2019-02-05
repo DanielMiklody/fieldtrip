@@ -147,6 +147,14 @@ ARRAY+=(utilities/private/channelposition.m)
 sync ${ARRAY[*]}
 
 ################################################################################
+# combineClusters.m
+
+ARRAY=()
+ARRAY+=(private/combineClusters.m)
+ARRAY+=(plotting/private/combineClusters.m)
+sync ${ARRAY[*]} 
+
+################################################################################
 # combineClusters.mexa64
 
 ARRAY=()
@@ -244,6 +252,7 @@ ARRAY+=(preproc/private/defaultId.m)
 ARRAY+=(private/defaultId.m)
 ARRAY+=(specest/private/defaultId.m)
 ARRAY+=(statfun/private/defaultId.m)
+ARRAY+=(test/private/defaultId.m)
 ARRAY+=(trialfun/private/defaultId.m)
 ARRAY+=(utilities/private/defaultId.m)
 sync ${ARRAY[*]}
@@ -416,10 +425,19 @@ ARRAY+=(specest/private/filter_with_correction.m)
 sync ${ARRAY[*]}
 
 ################################################################################
+# findcluster.m
+
+ARRAY=()
+ARRAY+=(private/findcluster.m)
+ARRAY+=(plotting/private/findcluster.m)
+sync ${ARRAY[*]} 
+
+################################################################################
 # find_innermost_boundary.m
 
 ARRAY=()
 ARRAY+=(external/dipoli/private/find_innermost_boundary.m)
+ARRAY+=(external/openmeeg/private/find_innermost_boundary.m)
 ARRAY+=(forward/private/find_innermost_boundary.m)
 ARRAY+=(inverse/private/find_innermost_boundary.m)
 ARRAY+=(private/find_innermost_boundary.m)
@@ -439,6 +457,7 @@ sync ${ARRAY[*]}
 
 ARRAY=()
 ARRAY+=(external/dipoli/private/find_outermost_boundary.m)
+ARRAY+=(external/openmeeg/private/find_outermost_boundary.m)
 ARRAY+=(fileio/private/find_outermost_boundary.m)
 ARRAY+=(forward/private/find_outermost_boundary.m)
 ARRAY+=(private/find_outermost_boundary.m)
@@ -458,6 +477,7 @@ sync ${ARRAY[*]}
 
 ARRAY=()
 ARRAY+=(forward/private/fitsphere.m)
+ARRAY+=(plotting/private/fitsphere.m)
 ARRAY+=(private/fitsphere.m)
 sync ${ARRAY[*]}
 
@@ -863,6 +883,14 @@ ARRAY+=(inverse/private/ft_inside_vol.m)
 sync ${ARRAY[*]}
 
 ################################################################################
+# ft_inv.m
+
+ARRAY=()
+ARRAY+=(private/ft_inv.m)
+ARRAY+=(inverse/private/ft_inv.m)
+sync ${ARRAY[*]}
+
+################################################################################
 # ft_notification.m, should be consistent with ft_warning
 
 ARRAY=()
@@ -1019,6 +1047,7 @@ sync ${ARRAY[*]}
 ARRAY=()
 ARRAY+=(contrib/nutmegtrip/private/getdimord.m)
 ARRAY+=(fileio/private/getdimord.m)
+ARRAY+=(forward/private/getdimord.m)
 ARRAY+=(private/getdimord.m)
 ARRAY+=(test/private/getdimord.m)
 ARRAY+=(utilities/private/getdimord.m)
@@ -1030,6 +1059,7 @@ sync ${ARRAY[*]}
 ARRAY=()
 ARRAY+=(contrib/nutmegtrip/private/getdimsiz.m)
 ARRAY+=(fileio/private/getdimsiz.m)
+ARRAY+=(forward/private/getdimsiz.m)
 ARRAY+=(private/getdimsiz.m)
 ARRAY+=(test/private/getdimsiz.m)
 ARRAY+=(utilities/private/getdimsiz.m)
@@ -1195,7 +1225,7 @@ ARRAY+=(test/private/icosahedron642.m)
 sync ${ARRAY[*]}
 
 ################################################################################
-# ignnorefields.m
+# ignorefields.m
 
 ARRAY=()
 ARRAY+=(private/ignorefields.m)
@@ -1330,6 +1360,30 @@ sync ${ARRAY[*]}
 ARRAY=()
 ARRAY+=(test/private/isalmostequal.m)
 ARRAY+=(private/isalmostequal.m)
+sync ${ARRAY[*]}
+
+################################################################################
+# isfile.m
+
+ARRAY=()
+ARRAY+=(compat/matlablt2017b/isfile.m)
+ARRAY+=(compat/octave/isfile.m)
+sync ${ARRAY[*]}
+
+################################################################################
+# isfolder.m
+
+ARRAY=()
+ARRAY+=(compat/matlablt2017b/isfolder.m)
+ARRAY+=(compat/octave/isfolder.m)
+sync ${ARRAY[*]}
+
+################################################################################
+# ismatch.m
+
+ARRAY=()
+ARRAY+=(private/ismatch.m)
+ARRAY+=(trialfun/private/ismatch.m)
 sync ${ARRAY[*]}
 
 ################################################################################
@@ -2290,6 +2344,7 @@ sync ${ARRAY[*]}
 # normals.m
 
 ARRAY=()
+ARRAY+=(fileio/private/normals.m)
 ARRAY+=(forward/private/normals.m)
 ARRAY+=(private/normals.m)
 ARRAY+=(test/private/normals.m)
@@ -2794,6 +2849,7 @@ sync ${ARRAY[*]}
 ARRAY=()
 ARRAY+=(external/openmeeg/private/refine.m)
 ARRAY+=(plotting/private/refine.m)
+ARRAY+=(fileio/private/refine.m)
 ARRAY+=(private/refine.m)
 ARRAY+=(test/private/refine.m)
 ARRAY+=(utilities/private/refine.m)
@@ -3390,6 +3446,15 @@ ARRAY+=(plotting/private/translate.m)
 ARRAY+=(private/translate.m)
 ARRAY+=(utilities/private/translate.m)
 sync ${ARRAY[*]}
+
+################################################################################
+# triangle2connectivity.m
+
+ARRAY=()
+ARRAY+=(private/triangle2connectivity.m)
+ARRAY+=(plotting/private/triangle2connectivity.m)
+sync ${ARRAY[*]}
+
 
 ################################################################################
 # triangle4pt.m

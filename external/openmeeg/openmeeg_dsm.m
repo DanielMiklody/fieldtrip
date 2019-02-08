@@ -1,145 +1,113 @@
-function [dsm] = openmeeg_dsm(pos, vol, flag)
+function [dsm] = openmeeg_dsm(pos, headmodel, NAflag, source)
 
-% OPENMEEG_DSM computes the OpenMEEG DSM matrix
-%              i.e. Right hand side in the potential equation
+% FT_SYSMAT_OPENMEEG creates a volume conduction model of the
+% head using the boundary element method (BEM). This function takes
+% as input the triangulated surfaces that describe the boundaries and
+% returns as output a volume conduction model which can be used to
+% compute leadfields.
+%
+% This function implements
+%   Gramfort et al. OpenMEEG: opensource software for quasistatic
+%   bioelectromagnetics. Biomedical engineering online (2010) vol. 9 (1) pp. 45
+%   http://www.biomedical-engineering-online.com/content/9/1/45
+%   doi:10.1186/1475-925X-9-45
+% and
+%   Kybic et al. Generalized head models for MEG/EEG: boundary element method
+%   beyond nested volumes. Phys. Med. Biol. (2006) vol. 51 pp. 1333-1346
+%   doi:10.1088/0031-9155/51/5/021
+%
+% This link with FieldTrip is derived from the OpenMEEG project
+% with contributions from Daniel Wong and Sarang Dalal, and uses external
+% command-line executables. See http://openmeeg.github.io/
 %
 % Use as
-%   [dsm] = openmeeg_dsm(po, vol, flag)
+%   dsm = ft_sysmat_openmeeg(pos, headmodel, sens, nonadaptive_flag)
 %
-% flag = 1 non adaptive algorithm: does not try to approximate the
-% potential in the neighborhodd of the leads, by locally refining the BEM surface
+%
+% See also FT_HEADMODEL_OPENMEEG, FT_SENSINTERP_OPENMEEG, FT_PREPARE_LEADFIELD
 
-% Copyright (C) 2010-2017, OpenMEEG developers
+%$Id$
 
+ft_hastoolbox('openmeeg', 1);  % add to path (if not yet on path)
 openmeeg_license;              % show the license (only once)
 prefix = om_checkombin;        % check the installation of the binaries
+if(~ispc) % if Linux/Mac, set number of threads
+    omp_num_threads = feature('numCores');
+    prefix = ['export OMP_NUM_THREADS=' num2str(omp_num_threads) ';' prefix];
+end
+
+ecog = ft_getopt(headmodel,'ecog','no');
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% this uses an implementation that was contributed by INRIA Odyssee Team
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % store the current path and change folder to the temporary one
-tmpfolder = cd;
+cwd = pwd;
+bndom = headmodel.bnd;
 
-bndom = vol.bnd;
+workdir = fullfile(tempdir,['ft_om_' datestr(now,'ddmmyyHHMMSSFFF')]);
+mkdir(workdir);
 
 try
-    cd(tempdir)
-
-    % write the triangulations to file
-    bndfile = {};
-    for i=1:length(vol.bnd)
-        [junk,tname] = fileparts(tempname);
-        bndfile{i} = [tname '.tri'];
-        ok = checknormals(bndom(i));
-        if ~ok
-          bndom(i).tri = fliplr(bndom(i).tri);
-        end
-        om_save_tri(bndfile{i}, bndom(i).pos, bndom(i).tri);
+    % Write the triangulations to file, named after tissue type.
+    % OpenMEEG v2.3 and up internally adjusts the convention for surface
+    % normals, but OpenMEEG v2.2 expects surface normals to point inwards;
+    % this checks and corrects if needed
+    bndfile = fullfile(workdir,strcat(headmodel.tissue,'.tri'));
+    for ii=1:length(bndom)
+        om_save_tri(bndfile{ii}, bndom(ii).pos, bndom(ii).tri);
     end
     
-    % these will hold the shell script and the inverted system matrix
-    [junk,tname] = fileparts(tempname);
-    if ~ispc
-      exefile = [tname '.sh'];
-    else
-      exefile = [tname '.bat'];
+    condfile  = fullfile(workdir,'om.cond');
+    geomfile  = fullfile(workdir,'om.geom');
+    dipfile = fullfile(workdir,'dip.txt');
+    dsmfile = fullfile(workdir,'dsm.bin'); % extension added directly in om_assemble function call below
+    
+    % write conductivity and mesh files
+    bndlabel = {};
+    for i=1:length(bndom)
+        [dum,bndlabel{i}] = fileparts(bndfile{i});
     end
-
-    [junk,tname] = fileparts(tempname);
-    condfile = [tname '.cond'];
-    [junk,tname] = fileparts(tempname);
-    geomfile = [tname '.geom'];
-    [junk,tname] = fileparts(tempname);
-    dipfile = [tname '.dip'];
-    [junk,tname] = fileparts(tempname);
-    dsmfile = [tname '.bin'];
-
-    % write conductivity and geometry files
-    om_write_geom(geomfile,bndfile);
-    om_write_cond(condfile,vol.cond);
-
+    
+    om_write_geom(geomfile,bndfile,bndlabel);
+    om_write_cond(condfile,headmodel.cond,bndlabel);
+    
     % handle dipole file
     ndip = size(pos,1);
-    pos = [kron(pos,ones(3,1)) , kron(ones(ndip,1),eye(3))]; % save pos with each 3D orientation
+    pos = [kron(pos,ones(3,1)),kron(ones(ndip,1),eye(3))]; % save pos with each 3D orientation
     om_save_full(pos,dipfile,'ascii');
-
-    % Exe file
-    efid = fopen(exefile, 'w');
+    
     omp_num_threads = feature('numCores');
-
-    if flag
-      str = ' -DSMNA';
+    
+    if(strcmp(NAflag,'yes'))
+        str = ' -DSMNA';
     else
-      str = ' -DSM';
+        str = ' -DSM';
+    end
+    if nargin<4
+        if isfield(headmodel,'inner_skull_surface')
+            source=[bndlabel{inner_skull_surface}];
+        else
+            source=[bndlabel{end}];
+        end
+    end
+    om_status = system([prefix 'om_assemble' str ' ' geomfile ' ' condfile ' ' dipfile ' ' dsmfile ' ' source]);
+    
+    if(om_status ~= 0) % status = 0 if successful
+        ft_error(['Aborting OpenMEEG pipeline due to above error.']);
     end
     
-    if ~ispc
-      fprintf(efid,'#!/usr/bin/env bash\n');
-      fprintf(efid,['export OMP_NUM_THREADS=',num2str(omp_num_threads),'\n']);
-      % the following implements Galerkin method and switch can be -DSM or -DSMNA
-      % (non adaptive), see OMtrunk/src/assembleSourceMat.cpp, operators.cpp
-      fprintf(efid,[prefix 'om_assemble' str ' ./',geomfile,' ./',condfile,' ./',dipfile,' ./',dsmfile,' 2>&1 > /dev/null\n']);
-    else
-      fprintf(efid,[prefix 'om_assemble' str ' ./',geomfile,' ./',condfile,' ./',dipfile,' ./',dsmfile,'\n']);
-    end
-    
-    fclose(efid);
-    if ~ispc
-      dos(sprintf('chmod +x %s', exefile));
-    end
+    dsm = om_load_full(dsmfile,'binary');
 catch
-    cd(tmpfolder)
     rethrow(lasterror)
 end
 
 try
-    % execute OpenMEEG and read the resulting file
-    disp('Assembling OpenMEEG DSM matrix');
-    stopwatch = tic;
-    if ispc
-        dos(exefile);
-    else
-        dos(['./' exefile]);
-    end
-    dsm = om_load_full(dsmfile,'binary');
-    toc(stopwatch);
-    cleaner(vol,bndfile,condfile,geomfile,exefile,dipfile,dsmfile)
-    cd(tmpfolder)
+    rmdir(workdir,'s'); % remove workdir with intermediate files
 catch
-    warning('an error ocurred while running OpenMEEG');
     disp(lasterr);
-    cleaner(vol,bndfile,condfile,geomfile,exefile,dipfile,dsmfile)
-    cd(tmpfolder)
-end
-
-function cleaner(vol,bndfile,condfile,geomfile,exefile,dipfile,dsmfile)
-% delete the temporary files
-for i=1:length(vol.bnd)
-    if exist(bndfile{i},'file'),delete(bndfile{i}),end
-end
-if exist(condfile,'file'),delete(condfile);end
-if exist(geomfile,'file'),delete(geomfile);end
-if exist(exefile,'file'),delete(exefile);end
-if exist(dipfile,'file'),delete(dipfile);end
-if exist(dsmfile,'file'),delete(dsmfile);end
-
-function ok = checknormals(bnd)
-% FIXME: this method is rigorous only for star shaped surfaces
-ok = 0;
-pos = bnd.pos;
-tri = bnd.tri;
-% translate to the center
-org = mean(pos,1);
-pos(:,1) = pos(:,1) - org(1);
-pos(:,2) = pos(:,2) - org(2);
-pos(:,3) = pos(:,3) - org(3);
-
-w = sum(solid_angle(pos, tri));
-
-if w<0 && (abs(w)-4*pi)<1000*eps
-  ok = 0;
-%   warning('your normals are outwards oriented\n')
-elseif w>0 && (abs(w)-4*pi)<1000*eps
-  ok = 1;
-%   warning('your normals are inwards oriented')
-else
-  error('your surface probably is irregular\n')
-  ok = 0;
+    rmdir(workdir,'s'); % remove workdir with intermediate files
+    ft_error('an error occurred while running OpenMEEG');
 end

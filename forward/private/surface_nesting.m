@@ -23,7 +23,7 @@ for i=1:numboundaries
 end
 
 if sum(nesting(:))~=(numboundaries*(numboundaries-1)/2)
-  ft_error('the compartment nesting cannot be determined');
+  ft_warning('the compartment nesting cannot be determined');
 end
 
 if strcmp(desired,'insidefirst')

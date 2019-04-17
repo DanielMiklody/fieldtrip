@@ -63,10 +63,10 @@ else
     for ii=1:numbnd
             Numbernames{ii}=num2str(ii);
         switch names{ii}
-            case {'skin','scalp'}
+            case {'skin','scalp','domain1'}
                 indices.skin=ii;
                 %                 names{ii}='skin';
-            case {'skull','bone'}
+            case {'skull','bone','domain2'}
                 %                 names{ii}='skull';
                 indices.skull=ii;
             case {'eyel','left eye'}
@@ -75,23 +75,35 @@ else
             case {'eyer','right eye'}
                 %                 names{ii}='eyer';
                 indices.eyer=ii;
-            case {'csf','CSF'}
+            case {'csf','CSF','domain3'}
                 %                 names{ii}='csf';
                 indices.csf=ii;
-            case {'brain','gray matter'}
+            case {'brain','gray matter','domain4'}
                 %                 names{ii}='brain';
                 indices.gray=ii;
-            case {'white matter'}
+            case {'white matter','domain5'}
                 %                 names{ii}='brain';
                 indices.white=ii;
         end
     end
     Inamesp=strcat('+',Numbernames);
     Inamesn=strcat('-',Numbernames);
+    if ~isfield(indices,'skin')
+        names{end+1}='';
+        Inamesp{end+1}=strcat('+', num2str(indices.gray));
+        Inamesn{end+1}=strcat('+',num2str(indices.gray));
+        indices.skin=numel(names);
+    end
+    if ~isfield(indices,'skull')
+        names{end+1}='';
+        Inamesp{end+1}=strcat('+', num2str(indices.gray));
+        Inamesn{end+1}=strcat('+',num2str(indices.gray));
+        indices.skull=numel(names);
+    end
     if ~isfield(indices,'csf')
         names{end+1}='';
-        Inamesp{end+1}=['+I' names{indices.gray}];
-        Inamesn{end+1}=['-I' names{indices.gray}];
+        Inamesp{end+1}=strcat('+', num2str(indices.gray));
+        Inamesn{end+1}=strcat('+',num2str(indices.gray));
         indices.csf=numel(names);
     end
     if ~isfield(indices,'white')

@@ -10,7 +10,7 @@ function version = om_checkver
 % $Revision$
 
 if ispc
-    [status, result] = system('om_project_sensors.exe');
+    [status, result] = system('om_project_sensors.exe -h');
    if status>0
         version=22;
     else

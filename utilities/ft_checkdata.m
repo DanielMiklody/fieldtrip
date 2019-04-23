@@ -1347,7 +1347,7 @@ if ~isfield(data, 'brainordinate')
 end
 % the main structure contains the functional data on the parcels
 % the brainordinate sub-structure contains the original geometrical model
-source = data.brainordinate;
+source = ft_checkdata(data.brainordinate, 'datatype', 'source');
 data   = rmfield(data, 'brainordinate');
 if isfield(data, 'cfg')
   source.cfg = data.cfg;
@@ -1406,23 +1406,28 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function data = source2volume(data)
 
-if isfield(data, 'dimord')
-  % it is a modern source description
-  
-  %this part depends on the assumption that the list of positions is describing a full 3D volume in
-  %an ordered way which allows for the extraction of a transformation matrix
-  %i.e. slice by slice
+fn = fieldnames(data);
+fd = nan(size(fn));
+for i=1:numel(fn)
+  fd(i) = ndims(data.(fn{i}));
+end
+
+if ~isfield(data, 'dim')
+  % this part depends on the assumption that the list of positions is describing a full 3D volume in
+  % an ordered way which allows for the extraction of a transformation matrix, i.e. slice by slice
+  data.dim = pos2dim(data.pos);
   try
-    if isfield(data, 'dim')
-      data.dim = pos2dim(data.pos, data.dim);
-    else
-      data.dim = pos2dim(data);
-    end
+    % if the dim is correct, it should be possible to obtain the transform
+    ws = warning('off', 'MATLAB:rankDeficientMatrix');
+    pos2transform(data.pos, data.dim);
+    warning(ws);
   catch
+    % remove the incorrect dim
+    data = rmfield(data, 'dim');
   end
 end
 
-if isfield(data, 'dim') && length(data.dim)>=3
+if isfield(data, 'dim')
   data.transform = pos2transform(data.pos, data.dim);
 end
 
@@ -1472,10 +1477,10 @@ end
 for i=1:nrpt
   data.time{i}  = freq.time;
   data.trial{i} = reshape(dat(i,:,:,:), nchan*nfreq, ntime);
-  if any(isnan(data.trial{i}(1,:)))
-    tmp = data.trial{i}(1,:);
-    begsmp = find(isfinite(tmp),1, 'first');
-    endsmp = find(isfinite(tmp),1, 'last' );
+  if any(sum(isnan(data.trial{i}),1)==size(data.trial{i},1))
+    tmp = sum(~isfinite(data.trial{i}),1)==size(data.trial{i},1);
+    begsmp = find(~tmp,1, 'first');
+    endsmp = find(~tmp,1, 'last' );
     data.trial{i} = data.trial{i}(:, begsmp:endsmp);
     data.time{i}  = data.time{i}(begsmp:endsmp);
   end

@@ -57,7 +57,7 @@ function [shape] = ft_read_headshape(filename, varargin)
 %   'brainvisa_mesh'
 %   'brainsuite_dfs'
 %
-% See also FT_READ_VOL, FT_READ_SENS, FT_READ_ATLAS, FT_WRITE_HEADSHAPE
+% See also FT_READ_HEADMODEL, FT_READ_SENS, FT_READ_ATLAS, FT_WRITE_HEADSHAPE
 
 % Copyright (C) 2008-2017 Robert Oostenveld
 %
@@ -787,7 +787,7 @@ switch fileformat
     shape.fid.label(1:3)= {'nas', 'lpa', 'rpa'};
     
   case 'yokogawa_hsp'
-    fid = fopen(filename, 'rt');
+    fid = fopen_or_error(filename, 'rt');
     
     fidstart = false;
     hspstart = false;
@@ -1088,7 +1088,7 @@ switch fileformat
     shape.unit = 'unkown';
     
     if exist([filename '.minf'], 'file')
-      minffid = fopen([filename '.minf']);
+      minffid = fopen_or_error([filename '.minf']);
       hdr=fgetl(minffid);
       tfm_idx = strfind(hdr,'''transformations'':') + 21;
       transform = sscanf(hdr(tfm_idx:end),'%f,',[4 4])';
@@ -1164,7 +1164,7 @@ switch fileformat
     end
     
   case 'neuromag_mesh'
-    fid = fopen(filename, 'rt');
+    fid = fopen_or_error(filename, 'rt');
     npos = fscanf(fid, '%d', 1);
     pos = fscanf(fid, '%f', [6 npos])';
     ntri = fscanf(fid, '%d', 1);
@@ -1200,8 +1200,8 @@ switch fileformat
       % try reading it as volume conductor
       % and treat the skin surface as headshape
       try
-        headmodel = ft_read_vol(filename);
-        if ~ft_voltype(headmodel, 'bem')
+        headmodel = ft_read_headmodel(filename);
+        if ~ft_headmodeltype(headmodel, 'bem')
           ft_error('skin surface can only be extracted from boundary element model');
         else
           if ~isfield(headmodel, 'skin')

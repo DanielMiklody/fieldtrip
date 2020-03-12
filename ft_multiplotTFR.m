@@ -37,6 +37,7 @@ function [cfg] = ft_multiplotTFR(cfg, data)
 %                          Draw a box around each graph
 %   cfg.hotkeys          = enables hotkeys (up/down arrows) for dynamic colorbar adjustment
 %   cfg.colorbar         = 'yes', 'no' (default = 'no')
+%   cfg.colorbartext     =  string indicating the text next to colorbar
 %   cfg.colormap         = any sized colormap, see COLORMAP
 %   cfg.showlabels       = 'yes', 'no' (default = 'no')
 %   cfg.showoutline      = 'yes', 'no' (default = 'no')
@@ -58,7 +59,23 @@ function [cfg] = ft_multiplotTFR(cfg, data)
 %                          (default) behavior of this option depends on the dimor
 %                          of the input data (see below).
 %   cfg.layout           = specify the channel layout for plotting using one of
-%                         the supported ways (see below).
+%                          the supported ways (see below).
+%
+% The following options for the scaling of the EEG, EOG, ECG, EMG, MEG and NIRS channels
+% is optional and can be used to bring the absolute numbers of the different
+% channel types in the same range (e.g. fT and uV). The channel types are determined
+% from the input data using FT_CHANNELSELECTION.
+%   cfg.eegscale         = number, scaling to apply to the EEG channels prior to display
+%   cfg.eogscale         = number, scaling to apply to the EOG channels prior to display
+%   cfg.ecgscale         = number, scaling to apply to the ECG channels prior to display
+%   cfg.emgscale         = number, scaling to apply to the EMG channels prior to display
+%   cfg.megscale         = number, scaling to apply to the MEG channels prior to display
+%   cfg.gradscale        = number, scaling to apply to the MEG gradiometer channels prior to display (in addition to the cfg.megscale factor)
+%   cfg.magscale         = number, scaling to apply to the MEG magnetometer channels prior to display (in addition to the cfg.megscale factor)
+%   cfg.nirsscale        = number, scaling to apply to the NIRS channels prior to display
+%   cfg.mychanscale      = number, scaling to apply to the channels specified in cfg.mychan
+%   cfg.mychan           = Nx1 cell-array with selection of channels
+%   cfg.chanscale        = Nx1 vector with scaling factors, one per channel specified in cfg.channel
 %
 % For the plotting of directional connectivity data the cfg.directionality
 % option determines what is plotted. The default value and the supported
@@ -80,8 +97,8 @@ function [cfg] = ft_multiplotTFR(cfg, data)
 %
 % The layout defines how the channels are arranged and what the size of each
 % subplot is. You can specify the layout in a variety of ways:
-%  - you can provide a pre-computed layout structure (see ft_prepare_layout)
-%  - you can give the name of an ascii layout file with extension *.lay
+%  - you can provide a pre-computed layout structure, see FT_PREPARE_LAYOUT
+%  - you can give the name of an ASCII layout file with extension *.lay
 %  - you can give the name of an electrode file
 %  - you can give an electrode definition, i.e. "elec" structure
 %  - you can give a gradiometer definition, i.e. "grad" structure
@@ -179,6 +196,7 @@ cfg.xlim           = ft_getopt(cfg, 'xlim', 'maxmin');
 cfg.ylim           = ft_getopt(cfg, 'ylim', 'maxmin');
 cfg.zlim           = ft_getopt(cfg, 'zlim', 'maxmin');
 cfg.colorbar       = ft_getopt(cfg, 'colorbar', 'no');
+cfg.colorbartext   = ft_getopt(cfg, 'colorbartext', '');
 cfg.comment        = ft_getopt(cfg, 'comment', date);
 cfg.limittext      = ft_getopt(cfg, 'limittext', 'default');
 cfg.showlabels     = ft_getopt(cfg, 'showlabels', 'no');
@@ -325,7 +343,8 @@ if startsWith(dimord, 'chan_chan_') || startsWith(dimord, 'chancmb_')
 end
 
 % Apply channel-type specific scaling
-tmpcfg = keepfields(cfg, {'parameter', 'chanscale', 'ecgscale', 'eegscale', 'emgscale', 'eogscale', 'gradscale', 'magscale', 'megscale', 'mychan', 'mychanscale'});
+fn = fieldnames(cfg);
+tmpcfg = keepfields(cfg, fn(endsWith(fn, 'scale') | startsWith(fn, 'mychan') | strcmp(fn, 'channel') | strcmp(fn, 'parameter')));
 data = chanscale_common(tmpcfg, data);
 
 
@@ -539,7 +558,8 @@ end % show scale
 
 % show colorbar
 if isfield(cfg, 'colorbar') && (strcmp(cfg.colorbar, 'yes'))
-  colorbar;
+  c = colorbar;
+  ylabel(c, cfg.colorbartext);
 end
 
 % Set colour axis

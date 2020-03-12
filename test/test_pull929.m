@@ -1,6 +1,6 @@
 function test_pull929
 
-% MEM 1000mb
+% MEM 2gb
 % WALLTIME 00:10:00
 
 % DEPENDENCY ft_scalpcurrentdensity ft_fetch_sens
@@ -82,7 +82,7 @@ end
 
 shuffledata = ERP_standard;
 randidx = randperm(length(shuffledata.label));
-[~,unidx] = sort(randidx); % unshuffle
+[dum, unidx] = sort(randidx); % unshuffle
 shuffledata.avg = shuffledata.avg(randidx,:);
 shuffledata.var = shuffledata.var(randidx,:);
 shuffledata.dof = shuffledata.dof(randidx,:);

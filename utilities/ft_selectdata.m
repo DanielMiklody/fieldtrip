@@ -270,10 +270,6 @@ if ~keepfreqdim,    assert(avgoverfreq,    'removing a dimension is only possibl
 if ~keeptimedim,    assert(avgovertime,    'removing a dimension is only possible when averaging'); end
 if ~keeprptdim,     assert(avgoverrpt,     'removing a dimension is only possible when averaging'); end
 
-if strcmp(cfg.select, 'union') && (avgoverpos || avgoverchan || avgoverchancmb || avgoverfreq || avgovertime || avgoverrpt)
-  ft_error('cfg.select ''union'' in combination with averaging across one of the dimensions is not possible');
-end
-
 % trim the selection to all inputs, rpt and rpttap are dealt with later
 if hasspike,   [selspike,   cfg] = getselection_spike  (cfg, varargin{:}); end
 if haspos,     [selpos,     cfg] = getselection_pos    (cfg, varargin{:}, cfg.tolerance, cfg.select); end
@@ -1212,8 +1208,8 @@ for i=(numel(siz)+1):numel(dim)
   % all trailing singleton dimensions have length 1
   siz(i) = 1;
 end
-if isvector(x)
-  % there is no harm to keep it as it is
+if isvector(x) && ~(isrow(x) && dim(1) && numel(x)>1)
+  % there is no harm to keep it as it is, unless the data matrix is 1xNx1x1
 elseif istable(x)
   % there is no harm to keep it as it is
 else

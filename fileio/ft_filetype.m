@@ -58,14 +58,17 @@ function [type] = ft_filetype(filename, desired, varargin)
 %  - Tobii *.tsv
 %  - Stanford *.ply
 %  - Tucker Davis Technology
-%  - VSM-Medtech/CTF
+%  - CTF
 %  - Yokogawa & Ricoh
 %  - nifti, gifti
 %  - Nicolet *.e (currently from Natus, formerly Carefusion, Viasys and Taugagreining. Also known as Oxford/Teca/Medelec Valor Nervus)
 %  - Biopac *.acq
 %  - AnyWave *.ades
+%  - Qualisys *.tsv
+%  - Mrtrix *.mif
+%  - MAUS *.TextGrid
 
-% Copyright (C) 2003-2018 Robert Oostenveld
+% Copyright (C) 2003-2019 Robert Oostenveld
 %
 % This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
 % for the documentation and details.
@@ -909,6 +912,12 @@ elseif (filetype_check_extension(filename, '.vid') || filetype_check_extension(f
   manufacturer = 'VideoMEG';
   content = 'video';
   
+elseif (filetype_check_extension(filename, '.avi') || filetype_check_extension(filename, '.vlf') || filetype_check_extension(filename, '.wmv') || filetype_check_extension(filename, '.mov') || filetype_check_extension(filename, '.mp4'))
+  % generic fideo files, these are also supported by ft_read_header and ft_read_data
+  type = 'video';
+  manufacturer = 'generic';
+  content = 'video';
+  
 elseif (filetype_check_extension(filename, '.dat') ||  filetype_check_extension(filename, '.Dat')) && (exist(fullfile(p, [f '.ini']), 'file') || exist(fullfile(p, [f '.Ini']), 'file'))
   % this should go before curry_dat
   type = 'deymed_dat';
@@ -1086,6 +1095,11 @@ elseif filetype_check_extension(filename, '.annot')
   type = 'freesurfer_annot';
   manufacturer = 'FreeSurfer';
   content = 'parcellation annotation';
+elseif filetype_check_extension(filename, '.label') && filetype_check_header(filename, '#!ascii')
+  % Freesurfer label file, see https://surfer.nmr.mgh.harvard.edu/fswiki/LabelsClutsAnnotationFiles
+  type = 'freesurfer_label';
+  manufacturer = 'FreeSurfer';
+  content = 'list of vertices belonging to a region';
   
 elseif filetype_check_extension(filename, '.txt') && numel(strfind(filename,'_nrs_')) == 1
   % This may be improved by looking into the file, rather than assuming the
@@ -1105,9 +1119,13 @@ elseif filetype_check_extension(filename, '.sd') && filetype_check_header(filena
   manufacturer = 'Homer';
   content = 'source detector information';
   
-  % known Artinis file format
+  % known Artinis file formats
 elseif filetype_check_extension(filename, '.oxy3')
   type = 'artinis_oxy3';
+  manufacturer = 'Artinis Medical Systems';
+  content = '(f)NIRS data';
+elseif filetype_check_extension(filename, '.oxy4')
+  type = 'artinis_oxy4';
   manufacturer = 'Artinis Medical Systems';
   content = '(f)NIRS data';
 elseif filetype_check_extension(filename, '.oxyproj')
@@ -1245,17 +1263,21 @@ elseif filetype_check_extension(filename, '.mat') && filetype_check_header(filen
   manufacturer = 'MATLAB';
   content = 'MATLAB binary data';
 elseif filetype_check_header(filename, 'RIFF', 0) && filetype_check_header(filename, 'WAVE', 8)
-  type = 'riff_wave';
+  type = 'audio_wav';
   manufacturer = 'Microsoft';
   content = 'audio';
-elseif filetype_check_extension(filename, '.m4a')
-  type = 'audio_m4a';
-  manufacturer = 'Apple';
+elseif any(filetype_check_extension(filename, {'.wav', '.ogg', '.flac', '.au', '.aiff', '.aif', '.aifc', '.mp3', '.m4a', '.mp4'}))
+  type = ['audio_' x(2:end)];
+  manufacturer = 'Various';
   content = 'audio';
 elseif filetype_check_extension(filename, '.txt') && filetype_check_header(filename, 'Site')
   type = 'easycap_txt';
   manufacturer = 'Easycap';
   content = 'electrode positions';
+elseif filetype_check_extension(filename, '.txt') && filetype_check_header(filename, '# OpenSignals Text File Format')
+  type = 'opensignals_txt';
+  manufacturer = 'Bitalino';
+  content = '';
 elseif filetype_check_extension(filename, '.txt')
   type = 'ascii_txt';
   manufacturer = '';
@@ -1391,8 +1413,46 @@ elseif contains(filename, '_events.tsv')
   type = 'events_tsv';
   manufacturer = 'BIDS';
   content = 'events';
+elseif filetype_check_extension(filename, '.xdf') && filetype_check_header(filename, 'XDF')
+  type = 'sccn_xdf';
+  manufacturer = 'SCCN / Lab Streaming Layer';
+  content = 'multiple streams';
+elseif filetype_check_extension(filename, '.tsv') && filetype_check_header(filename, 'NO_OF_')
+  type = 'qualisys_tsv';
+  manufacturer = 'Qualisys';
+  content = 'motion capture data';
+elseif filetype_check_extension(filename, '.c3d') && filetype_check_header(filename, [2, 80])
+  type = 'motion_c3d';
+  manufacturer = 'https://www.c3d.org';
+  content = 'motion capture data';
+elseif filetype_check_extension(filename, '.mif')
+  % this could be a mrtrix compatible image file
+  type = 'mrtrix_mif';
+  manufacturer = 'Mrtrix';
+  content = 'image data';
+elseif filetype_check_extension(filename, '.tck')
+  % this could be a mrtrix compatible tractography file
+  type = 'mrtrix_tck';
+  manufacturer = 'Mrtrix';
+  content = 'tractography data';
+elseif exist(fullfile(p, [f '.tsv']), 'file') && exist(fullfile(p, [f '.json']), 'file')
+  % BIDS uses tsv and json file pairs for behavioral and physiological data
+  type = 'bids_tsv';
+  manufacturer = 'BIDS';
+  content = 'timeseries data';
+elseif filetype_check_extension(filename, '.vtp') && filetype_check_header(filename, '<?xml')
+  type = 'vtk_xml';
+  manufacturer = 'https://vtk.org';
+  content = 'vtkPolyData unstructured';
+elseif filetype_check_extension(filename, '.tck') && filetype_check_header(filename, 'mrtrix tracks')
+  type = 'mrtrix_tck';
+  manufacturer = 'https://mrtrix.org';
+  content = 'mrtrix tracks';
+elseif filetype_check_extension(filename, '.TextGrid')
+  type = 'maus_textgrid';
+  manufacturer = 'MAUS/WebMAUS';
+  content = 'segmented text';
 end
-
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % finished determining the filetype

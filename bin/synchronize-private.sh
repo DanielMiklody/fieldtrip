@@ -38,11 +38,20 @@ ARRAY+=(forward/private/ama2headmodel.m)
 sync ${ARRAY[*]}
 
 ################################################################################
+# appendstruct.m
+
+ARRAY=()
+ARRAY+=(utilities/appendstruct.m)
+ARRAY+=(fileio/private/appendstruct.m)
+sync ${ARRAY[*]}
+
+################################################################################
 # atlas_lookup.m
 
 ARRAY=()
 ARRAY+=(contrib/nutmegtrip/private/atlas_lookup.m)
 ARRAY+=(private/atlas_lookup.m)
+ARRAY+=(plotting/private/atlas_lookup.m)
 sync ${ARRAY[*]}
 
 ################################################################################
@@ -728,6 +737,7 @@ sync ${ARRAY[*]}
 
 ARRAY=()
 ARRAY+=(fileio/private/ft_fetch_data.m)
+ARRAY+=(test/private/ft_fetch_data.m)
 ARRAY+=(utilities/ft_fetch_data.m)
 sync ${ARRAY[*]}
 
@@ -1189,6 +1199,7 @@ sync ${ARRAY[*]}
 ARRAY=()
 ARRAY+=(private/ignorefields.m)
 ARRAY+=(utilities/private/ignorefields.m)
+ARRAY+=(contrib/misc/private/ignorefields.m)
 sync ${ARRAY[*]}
 
 ################################################################################
@@ -1197,6 +1208,14 @@ sync ${ARRAY[*]}
 ARRAY=()
 ARRAY+=(plotting/private/inside_contour.m)
 ARRAY+=(private/inside_contour.m)
+sync ${ARRAY[*]}
+
+################################################################################
+# intersect_line.m
+
+ARRAY=()
+ARRAY+=(plotting/private/intersect_line.m)
+ARRAY+=(private/intersect_line.m)
 sync ${ARRAY[*]}
 
 ################################################################################
@@ -1311,6 +1330,14 @@ sync ${ARRAY[*]}
 ARRAY=()
 ARRAY+=(connectivity/private/inv3x3.mexw64)
 ARRAY+=(src/inv3x3.mexw64)
+sync ${ARRAY[*]}
+
+################################################################################
+# isdir_or_mkdir.m
+
+ARRAY=()
+ARRAY+=(fileio/private/isdir_or_mkdir.m)
+ARRAY+=(private/isdir_or_mkdir.m)
 sync ${ARRAY[*]}
 
 ################################################################################
@@ -2954,6 +2981,14 @@ ARRAY+=(utilities/rmsubfield.m)
 sync ${ARRAY[*]}
 
 ################################################################################
+# rollback_provenance.m
+
+ARRAY=()
+ARRAY+=(private/rollback_provenance.m)
+ARRAY+=(contrib/misc/private/rollback_provenance.m)
+sync ${ARRAY[*]}
+
+################################################################################
 # rotate.m
 
 ARRAY=()
@@ -3451,6 +3486,14 @@ sync ${ARRAY[*]}
 ARRAY=()
 ARRAY+=(private/traditional.m)
 ARRAY+=(utilities/private/traditional.m)
+sync ${ARRAY[*]}
+
+################################################################################
+# transfer2coeffs.m
+
+ARRAY=()
+ARRAY+=(private/transfer2coeffs.m)
+ARRAY+=(connectivity/private/transfer2coeffs.m)
 sync ${ARRAY[*]}
 
 ################################################################################

@@ -100,7 +100,6 @@ function [headmodel, cfg] = ft_prepare_headmodel(cfg, data)
 %   cfg.elec
 %   cfg.grad
 %   cfg.transform
-%   cfg.unit
 %
 % HALFSPACE
 %   cfg.point
@@ -156,9 +155,7 @@ if ft_abort
 end
 
 % check if the input cfg is valid for this function
-cfg = ft_checkconfig(cfg, 'required', 'method');
 cfg = ft_checkconfig(cfg, 'deprecated', 'geom');
-cfg = ft_checkconfig(cfg, 'forbidden', 'unit'); % see http://bugzilla.fieldtriptoolbox.org/show_bug.cgi?id=2375
 cfg = ft_checkconfig(cfg, 'renamed', {'geom', 'headshape'});
 cfg = ft_checkconfig(cfg, 'renamedval', {'method', 'bem_openmeeg', 'openmeeg'});
 cfg = ft_checkconfig(cfg, 'renamedval', {'method', 'bem_dipoli', 'dipoli'});
@@ -166,6 +163,14 @@ cfg = ft_checkconfig(cfg, 'renamedval', {'method', 'bem_cp', 'bemcp'});
 cfg = ft_checkconfig(cfg, 'renamedval', {'method', 'nolte', 'singleshell'});
 cfg = ft_checkconfig(cfg, 'renamed', {'hdmfile', 'headmodel'});
 cfg = ft_checkconfig(cfg, 'renamed', {'vol',     'headmodel'});
+
+if isfield(cfg, 'headmodel') && ischar(cfg.headmodel) && ~endsWith(cfg.headmodel, '.lft')
+  cfg.method = 'file'; % FIXME this is not documented, note that it does not apply to BESA headmodels
+elseif isfield(cfg, 'headmodel') && isstruct(cfg.headmodel)
+  cfg.method = 'existing'; % FIXME this is not documented
+end
+
+cfg = ft_checkconfig(cfg, 'required', 'method');
 
 % set the general defaults
 cfg.headshape       = ft_getopt(cfg, 'headshape');
@@ -177,7 +182,7 @@ cfg.smooth          = ft_getopt(cfg, 'smooth');
 cfg.threshold       = ft_getopt(cfg, 'threshold');
 
 % other options
-cfg.numvertices     = ft_getopt(cfg, 'numvertices', 3000);
+cfg.numvertices     = ft_getopt(cfg, 'numvertices');
 cfg.isolatedsource  = ft_getopt(cfg, 'isolatedsource'); % used for dipoli and openmeeg
 cfg.point           = ft_getopt(cfg, 'point');          % used for halfspace
 cfg.submethod       = ft_getopt(cfg, 'submethod');      % used for halfspace
@@ -189,6 +194,7 @@ cfg.singlesphere    = ft_getopt(cfg, 'singlesphere');
 cfg.tissueval       = ft_getopt(cfg, 'tissueval');      % used for simbio
 cfg.transform       = ft_getopt(cfg, 'transform');
 cfg.siunits         = ft_getopt(cfg, 'siunits', 'no');  % yes/no, convert the input and continue with SI units
+cfg.unit            = ft_getopt(cfg, 'unit');
 cfg.smooth          = ft_getopt(cfg, 'smooth');         % used for interpolate
 cfg.headmodel       = ft_getopt(cfg, 'headmodel');      % can contain CTF localspheres model
 
@@ -208,16 +214,21 @@ else
   data = [];
 end
 
+% convert to SI units
 if istrue(cfg.siunits)
-  % convert to SI units
+  cfg.unit = 'm';
+end
+
+% convert the geometrical data to the desired units for the source model
+if ~isempty(cfg.unit)
   if ~isempty(data)
-    data = ft_convert_units(data, 'm');
+    data = ft_convert_units(data, cfg.unit);
   end
   if isfield(cfg, 'grad') && ~isempty(cfg.grad)
-    cfg.grad = ft_convert_units(cfg.grad, 'm');
+    cfg.grad = ft_convert_units(cfg.grad, cfg.unit);
   end
   if isfield(cfg, 'elec') && ~isempty(cfg.elec)
-    cfg.elec = ft_convert_units(cfg.elec, 'm');
+    cfg.elec = ft_convert_units(cfg.elec, cfg.unit);
   end
 end
 
@@ -234,6 +245,15 @@ input_pos   = ~input_mesh && isfield(data, 'pos'); % surface points without tria
 
 % the construction of the volume conductor model is performed below
 switch cfg.method
+  case 'file'
+    % read it from file
+    headmodel = ft_read_headmodel(cfg.headmodel);
+    cfg = rmfield(cfg, 'method'); % FIXME this is not documented
+
+  case 'existing'
+    % return an existing one
+    headmodel = cfg.headmodel;
+    cfg = rmfield(cfg, 'method'); % FIXME this is not documented
 
   case 'interpolate'
     % the "data" here represents the output of FT_PREPARE_LEADFIELD, i.e. a regular dipole
@@ -256,9 +276,18 @@ switch cfg.method
   case {'bemcp' 'dipoli' 'openmeeg'}
     % the low-level functions all need a mesh
     if isfield(data, 'pos') && isfield(data, 'tri')
-      geometry = data;
+      if isempty(cfg.numvertices) || isequal(cfg.numvertices, arrayfun(@(x) size(x.pos, 1), data))
+        % copy the input data
+        geometry = data;
+      else
+        % retriangulate the input data
+        tmpcfg.method = 'headshape';
+        tmpcfg.headshape = data;
+        tmpcfg.numvertices = cfg.numvertices;
+        geometry = ft_prepare_mesh(tmpcfg);
+      end
     elseif isfield(data, 'transform') && isfield(data, 'dim')
-      tmpcfg   = keepfields(cfg, {'numvertices', 'tissue', 'spmverion'});
+      tmpcfg   = keepfields(cfg, {'numvertices', 'tissue', 'spmversion'});
       geometry = ft_prepare_mesh(tmpcfg, data);
     else
       ft_error('Either a segmented MRI or data with closed triangulated mesh is required as data input for the bemcp, dipoli or openmeeg method');
@@ -289,7 +318,7 @@ switch cfg.method
     if input_mesh || input_pos
       geometry = data;
     elseif input_seg
-      tmpcfg   = keepfields(cfg, {'numvertices', 'tissue', 'spmverion'});
+      tmpcfg   = keepfields(cfg, {'numvertices', 'tissue', 'spmversion'});
       geometry = ft_prepare_mesh(tmpcfg, data);
     elseif input_elec
       geometry.pos = data.chanpos;

@@ -161,7 +161,8 @@ try
       end
       clear bndtmp
     end
-    
+    om_save_tri(bndfile{ii}, bnd(ii).pos, bnd(ii).tri);
+  end    
     % retain surfaces in headmodel structure (after possible normal flip)
     headmodel.bnd = bnd;
         

@@ -83,7 +83,7 @@ try
       % (non adaptive), see OMtrunk/src/assembleSourceMat.cpp, operators.cpp
       fprintf(efid,['om_assemble' str ' ./',geomfile,' ./',condfile,' ./',electrodefile,' ./',eitsourcefile,' 2>&1 > /dev/null\n']);
       fprintf(efid,['om_assemble' str2 ' ./',geomfile,' ./',condfile,' ./',electrodefile,' ./',h2mfile,' 2>&1 > /dev/null\n']);
-      fprintf(efid,['om_gain' str3 ' ./',hmvinvfile,' ./',eitsourcefile,' ./',gainfile,' 2>&1 > /dev/null\n']);
+      fprintf(efid,['om_gain' str3 ' ./',hmvinvfile,' ./',eitsourcefile,' ./',h2mfile,' ./',gainfile,' 2>&1 > /dev/null\n']);
     else
       fprintf(efid,['om_assemble' str ' ./',geomfile,' ./',condfile,' ./',electrodefile,' ./',eitsourcefile,'\n']);
       fprintf(efid,['om_assemble' str2 ' ./',geomfile,' ./',condfile,' ./',electrodefile,' ./',h2mfile,'\n']);

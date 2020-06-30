@@ -116,7 +116,7 @@ cfg.renderer = ft_getopt(cfg, 'renderer'); % let MATLAB decide on the default
 % extract or generate the layout information
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-tmpcfg = keepfields(cfg, {'layout', 'rows', 'columns', 'commentpos', 'scalepos', 'elec', 'grad', 'opto', 'showcallinfo'});
+tmpcfg = keepfields(cfg, {'layout', 'rows', 'columns', 'commentpos', 'scalepos', 'projection', 'viewpoint', 'rotate', 'width', 'height', 'elec', 'grad', 'opto', 'showcallinfo'});
 if hasdata
   layout = ft_prepare_layout(tmpcfg, data);
 else
@@ -154,7 +154,7 @@ if isfield(cfg, 'image') && ~isempty(cfg.image)
   axis xy
 end
 
-ft_plot_layout(layout, 'point', true, 'box', istrue(cfg.box), 'label', true, 'mask', istrue(cfg.mask), 'outline', true);
+ft_plot_layout(layout, 'point', true, 'box', cfg.box, 'label', true, 'mask', cfg.mask, 'outline', true);
 
 % the following code can be used to verify a bipolar montage, given the
 % layout of the monopolar channels

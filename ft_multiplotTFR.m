@@ -229,8 +229,10 @@ end
 
 % set colormap
 if isfield(cfg,'colormap')
-  if ~isnumeric(cfg.colormap)
-    cfg.colormap = colormap(cfg.colormap);
+  if ischar(cfg.colormap)
+    cfg.colormap = ft_colormap(cfg.colormap);
+  elseif iscell(cfg.colormap)
+    cfg.colormap = ft_colormap(cfg.colormap{:});
   end
   if size(cfg.colormap,2)~=3
     ft_error('colormap must be a n x 3 matrix');
@@ -351,7 +353,7 @@ data = chanscale_common(tmpcfg, data);
 %% Section 3: select the data to be plotted and determine min/max range
 
 % Read or create the layout that will be used for plotting
-tmpcfg = keepfields(cfg, {'layout', 'rows', 'columns', 'commentpos', 'scalepos', 'elec', 'grad', 'opto', 'showcallinfo'});
+tmpcfg = keepfields(cfg, {'layout', 'rows', 'columns', 'commentpos', 'scalepos', 'projection', 'viewpoint', 'rotate', 'width', 'height', 'elec', 'grad', 'opto', 'showcallinfo'});
 cfg.layout = ft_prepare_layout(tmpcfg, data);
 
 % Take the subselection of channels that is contained in the layout, this is the same in all datasets
@@ -495,7 +497,7 @@ for k=1:length(selchan)
 end % plot channels
 
 % plot the layout, labels and outline
-ft_plot_layout(cfg.layout, 'box', istrue(cfg.box), 'label', istrue(cfg.showlabels), 'outline', istrue(cfg.showoutline), 'point', 'no', 'mask', 'no', 'fontsize', cfg.fontsize, 'labelyoffset', 1.4*median(cfg.layout.height/2), 'labelalignh', 'center', 'chanindx', find(~ismember(cfg.layout.label, {'COMNT', 'SCALE'})) );
+ft_plot_layout(cfg.layout, 'box', cfg.box, 'label', cfg.showlabels, 'outline', cfg.showoutline, 'point', 'no', 'mask', 'no', 'fontsize', cfg.fontsize, 'labelyoffset', 1.4*median(cfg.layout.height/2), 'labelalignh', 'center', 'chanindx', find(~ismember(cfg.layout.label, {'COMNT', 'SCALE'})) );
 
 % show colormap
 if isfield(cfg, 'colormap')

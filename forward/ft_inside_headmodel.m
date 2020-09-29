@@ -116,7 +116,7 @@ switch ft_headmodeltype(headmodel)
 
   case {'bem', 'dipoli', 'bemcp', 'openmeeg', 'asa', 'singleshell', 'neuromag', 'nolte'}
     % this is a model with a realistic shape described by a triangulated boundary
-    [pos, tri] = headsurface(headmodel, [], 'inwardshift', inwardshift, 'surface', 'brain');
+    [pos, tri] = headsurface(headmodel, [], 'inwardshift', inwardshift, 'surface', 'skin');
     inside = bounding_mesh(dippos, pos, tri);
 
   case {'simbio'}

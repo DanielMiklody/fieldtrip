@@ -1,4 +1,4 @@
-function [dsm] = openmeeg_dsm(pos, headmodel, NAflag, source)
+function [dsm] = openmeeg_msm(pos, headmodel, NAflag, source)
 
 % FT_SYSMAT_OPENMEEG creates a volume conduction model of the
 % head using the boundary element method (BEM). This function takes

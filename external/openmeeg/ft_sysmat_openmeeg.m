@@ -86,11 +86,12 @@ try
     else
         str = ' -DSM';
     end
-    if isfield(headmodel,'inner_skull_surface')
+    if 0%isfield(headmodel,'inner_skull_surface')
         source=[bndlabel{end}];
     else
         source='';
     end
+   
     om_status = system([prefix 'om_assemble' str ' ' geomfile ' ' condfile ' ' dipfile ' ' dsmfile ' ' source]);
     
     if(om_status ~= 0) % status = 0 if successful

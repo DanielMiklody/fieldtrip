@@ -192,7 +192,7 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% construct the low-level options for the leadfield computation as key-value pairs, these are passed to FT_COMPUTE_LEADFIELD and DIPOLE_FIT
+% construct the low-level options for the leadfield computation as key-value pairs, these are passed to FT_COMPUTE_LEADFIELD
 leadfieldopt = {};
 leadfieldopt = ft_setopt(leadfieldopt, 'reducerank',     ft_getopt(cfg, 'reducerank'));
 leadfieldopt = ft_setopt(leadfieldopt, 'backproject',    ft_getopt(cfg, 'backproject'));
@@ -286,6 +286,26 @@ elseif ft_headmodeltype(headmodel, 'singleshell')
     sourcemodel.leadfield(insideindx(diprange)) = mat2cell(tmp, m, repmat(n/numel(diprange), 1, numel(diprange)));
   end
   ft_progress('close');
+  
+elseif ft_headmodeltype(headmodel, 'duneuro')
+  % repeated system calls to the duneuro executable makes it rather slow
+  % calling it once for all dipoles is much more efficient
+  
+  % find the indices of all grid points that are inside the brain
+  insideindx = find(grid.inside);
+  
+  ft_progress('init', cfg.feedback, 'computing leadfield');
+  % compute the leadfield on all grid positions inside the brain
+  lf = ft_compute_leadfield(grid.pos(insideindx,:), sens, headmodel, 'reducerank', cfg.reducerank, 'normalize', cfg.normalize, 'normalizeparam', cfg.normalizeparam, 'backproject', cfg.backproject);
+  lf = mat2cell(lf, size(lf,1), repmat(3,1,size(lf,2)/3));
+  grid.leadfield(grid.inside) = lf;
+  for i=1:length(insideindx)
+    thisindx = insideindx(i);
+    if isfield(cfg, 'grid') && isfield(cfg.grid, 'mom')
+      % multiply with the normalized dipole moment to get the leadfield in the desired orientation
+      grid.leadfield{thisindx} = grid.leadfield{thisindx} * grid.mom(:,thisindx);
+    end
+  end % for all grid locations inside the brain
   
 else
   ft_progress('init', cfg.feedback, 'computing leadfield');

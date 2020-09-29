@@ -212,7 +212,7 @@ else
 end
 
 if isequal(cfg.method, 'harmony')
-  ft_error('Harmony does not work at present. Please contact the main developer of this method directly');
+  ft_error('The harmony implementation does not work at present. Please contact the main developer of this method directly');
 end
 
 % put the low-level options pertaining to the source reconstruction method in their own field
@@ -524,9 +524,8 @@ if isfreq && any(strcmp(cfg.method, {'dics', 'pcc', 'eloreta', 'mne','harmony', 
         ft_error('not supported')
       end
       
-      tmpcfg         = cfg;
-      tmpcfg.refchan = [];          % for PCC prepare_freq_matrices should not know explicitly about the refchan
-      tmpcfg.channel = cfg.channel; % this includes refchan and supchan
+      tmpcfg         = keepfields(cfg, {'keeptrials', 'rawtrial', 'refchan', 'channel'});
+      tmpcfg.refchan = []; % for PCC prepare_freq_matrices should not know explicitly about the refchan
       
       % select the data in the channels and the frequency of interest
       [Cf, Cr, Pr, Ntrials, tmpcfg] = prepare_freq_matrices(tmpcfg, data);
@@ -564,11 +563,12 @@ if isfreq && any(strcmp(cfg.method, {'dics', 'pcc', 'eloreta', 'mne','harmony', 
       
     case {'eloreta' 'mne' 'rv' 'music' 'harmony'}
       % these can handle both a csd matrix and a fourier matrix
-      [Cf, Cr, Pr, Ntrials, cfg] = prepare_freq_matrices(cfg, data);
+      tmpcfg = keepfields(cfg, {'keeptrials', 'rawtrial', 'refchan', 'channel'});
+      [Cf, Cr, Pr, Ntrials, tmpcfg] = prepare_freq_matrices(tmpcfg, data);
       
       % if the input data has a complete fourier spectrum, it can be projected through the filters
       if isfield(data, 'fourierspctrm')
-        [dum, datchanindx] = match_str(cfg.channel, data.label);
+        [dum, datchanindx] = match_str(tmpcfg.channel, data.label);
         fbin = nearest(data.freq, cfg.frequency);
         if numel(fbin)==1, fbin = fbin.*[1 1]; end
         if strcmp(data.dimord, 'chan_freq')
@@ -590,8 +590,7 @@ if isfreq && any(strcmp(cfg.method, {'dics', 'pcc', 'eloreta', 'mne','harmony', 
       end
       
     case 'dics'
-      tmpcfg         = cfg;
-      tmpcfg.refchan = cfg.refchan;                       % for DICS prepare_freq_matrices should know explicitly about the refchan
+      tmpcfg         = keepfields(cfg, {'keeptrials', 'rawtrial', 'refchan', 'channel'});
       tmpcfg.channel = setdiff(cfg.channel, cfg.refchan); % remove the refchan
       
       % select the data in the channels and the frequency of interest
@@ -618,7 +617,7 @@ if isfreq && any(strcmp(cfg.method, {'dics', 'pcc', 'eloreta', 'mne','harmony', 
   
   if hasbaseline
     % repeat the conversion for the baseline condition
-    [bCf, bCr, bPr, Nbaseline, cfg] = prepare_freq_matrices(cfg, baseline);
+    [bCf, bCr, bPr, Nbaseline, tmpcfg] = prepare_freq_matrices(tmpcfg, baseline);
     % fill these with NaNs, so that I dont have to treat them separately
     if isempty(bCr), bCr = nan(Nbaseline, Nchans, 1); end
     if isempty(bPr), bPr = nan(Nbaseline, 1, 1); end
@@ -738,7 +737,7 @@ if isfreq && any(strcmp(cfg.method, {'dics', 'pcc', 'eloreta', 'mne','harmony', 
   end
   methodopt = ft_cfg2keyval(tmpcfg);
   
-  % construct the low-level options for the leadfield computation as key-value pairs, these are passed to FT_COMPUTE_LEADFIELD and DIPOLE_FIT
+  % construct the low-level options for the leadfield computation as key-value pairs, these are passed to the inverse function and FT_COMPUTE_LEADFIELD
   leadfieldopt = {};
   leadfieldopt = ft_setopt(leadfieldopt, 'reducerank',     ft_getopt(cfg, 'reducerank'));
   leadfieldopt = ft_setopt(leadfieldopt, 'backproject',    ft_getopt(cfg, 'backproject'));
@@ -761,11 +760,11 @@ if isfreq && any(strcmp(cfg.method, {'dics', 'pcc', 'eloreta', 'mne','harmony', 
     switch cfg.method
       case 'dics'
         if strcmp(submethod, 'dics_power')
-          dip(i) = beamformer_dics(sourcemodel, sens, headmodel, [],  squeeze_Cf, methodopt{:}, leadfieldopt{:});
+          dip(i) = ft_inverse_dics(sourcemodel, sens, headmodel, [],  squeeze_Cf, methodopt{:}, leadfieldopt{:});
         elseif strcmp(submethod, 'dics_refchan')
-          dip(i) = beamformer_dics(sourcemodel, sens, headmodel, [],  squeeze_Cf, methodopt{:}, leadfieldopt{:}, 'Cr', Cr(i,:), 'Pr', Pr(i));
+          dip(i) = ft_inverse_dics(sourcemodel, sens, headmodel, [],  squeeze_Cf, methodopt{:}, leadfieldopt{:}, 'Cr', Cr(i,:), 'Pr', Pr(i));
         elseif strcmp(submethod, 'dics_refdip')
-          dip(i) = beamformer_dics(sourcemodel, sens, headmodel, [],  squeeze_Cf, methodopt{:}, leadfieldopt{:}, 'refdip', cfg.refdip);
+          dip(i) = ft_inverse_dics(sourcemodel, sens, headmodel, [],  squeeze_Cf, methodopt{:}, leadfieldopt{:}, 'refdip', cfg.refdip);
         end
       case 'pcc'
         if ~isempty(avg) && istrue(cfg.rawtrial)
@@ -774,17 +773,17 @@ if isfreq && any(strcmp(cfg.method, {'dics', 'pcc', 'eloreta', 'mne','harmony', 
           % repetition
           ft_error('rawtrial in combination with pcc has been temporarily disabled');
         else
-          dip(i) = beamformer_pcc(sourcemodel, sens, headmodel, avg, squeeze_Cf, methodopt{:}, leadfieldopt{:}, 'refdip', cfg.refdip, 'refchan', refchanindx, 'supdip', cfg.supdip, 'supchan', supchanindx);
+          dip(i) = ft_inverse_pcc(sourcemodel, sens, headmodel, avg, squeeze_Cf, methodopt{:}, leadfieldopt{:}, 'refdip', cfg.refdip, 'refchan', refchanindx, 'supdip', cfg.supdip, 'supchan', supchanindx);
         end
       case 'eloreta'
-        dip(i) = ft_eloreta(sourcemodel, sens, headmodel, avg, squeeze_Cf, methodopt{:}, leadfieldopt{:});
+        dip(i) = ft_inverse_eloreta(sourcemodel, sens, headmodel, avg, squeeze_Cf, methodopt{:}, leadfieldopt{:});
       case 'mne'
-        dip(i) = minimumnormestimate(sourcemodel, sens, headmodel, avg, methodopt{:}, leadfieldopt{:});
+        dip(i) = ft_inverse_mne(sourcemodel, sens, headmodel, avg, methodopt{:}, leadfieldopt{:});
       case 'harmony'
-        dip(i) = harmony(sourcemodel, sens, headmodel, avg, methodopt{:}, leadfieldopt{:});
+        dip(i) = ft_inverse_harmony(sourcemodel, sens, headmodel, avg, methodopt{:}, leadfieldopt{:});
         % ft_error(sprintf('method ''%s'' is unsupported for source reconstruction in the frequency domain', cfg.method));
       case {'rv'}
-        dip(i) = residualvariance(sourcemodel, sens, headmodel, avg, methodopt{:}, leadfieldopt{:}) ;
+        dip(i) = ft_inverse_rv(sourcemodel, sens, headmodel, avg, methodopt{:}, leadfieldopt{:});
       case {'music'}
         ft_error('method ''%s'' is currently unsupported for source reconstruction in the frequency domain', cfg.method);
       otherwise
@@ -799,7 +798,7 @@ if isfreq && any(strcmp(cfg.method, {'dics', 'pcc', 'eloreta', 'mne','harmony', 
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   % do time domain source reconstruction
   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-elseif istimelock && any(strcmp(cfg.method, {'lcmv', 'sam', 'mne','harmony', 'rv', 'music', 'pcc', 'mvl', 'sloreta', 'eloreta'}))
+elseif istimelock && any(strcmp(cfg.method, {'lcmv', 'sam', 'mne', 'harmony', 'rv', 'music', 'pcc', 'mvl', 'sloreta', 'eloreta'}))
   
   % determine the size of the data
   Nsamples = length(data.time);
@@ -1009,7 +1008,7 @@ elseif istimelock && any(strcmp(cfg.method, {'lcmv', 'sam', 'mne','harmony', 'rv
   end
   methodopt = ft_cfg2keyval(tmpcfg);
   
-  % construct the low-level options for the leadfield computation as key-value pairs, these are passed to FT_COMPUTE_LEADFIELD and DIPOLE_FIT
+  % construct the low-level options for the leadfield computation as key-value pairs, these are passed to the inverse function and FT_COMPUTE_LEADFIELD
   leadfieldopt = {};
   leadfieldopt = ft_setopt(leadfieldopt, 'reducerank',     ft_getopt(cfg, 'reducerank'));
   leadfieldopt = ft_setopt(leadfieldopt, 'backproject',    ft_getopt(cfg, 'backproject'));
@@ -1024,7 +1023,7 @@ elseif istimelock && any(strcmp(cfg.method, {'lcmv', 'sam', 'mne','harmony', 'rv
       squeeze_avg = reshape(avg(i,:,:),[size_avg(2) size_avg(3)]);
       squeeze_Cy  = reshape(Cy(i,:,:), [size_Cy(2)  size_Cy(3)]);
       fprintf('scanning repetition %d\n', i);
-      dip(i) = beamformer_lcmv(sourcemodel, sens, headmodel, squeeze_avg, squeeze_Cy, methodopt{:}, leadfieldopt{:});
+      dip(i) = ft_inverse_lcmv(sourcemodel, sens, headmodel, squeeze_avg, squeeze_Cy, methodopt{:}, leadfieldopt{:});
     end
     
     % the following has been disabled since it turns out to be wrong (see
@@ -1033,7 +1032,7 @@ elseif istimelock && any(strcmp(cfg.method, {'lcmv', 'sam', 'mne','harmony', 'rv
     %     %don't loop over repetitions (slow), but reshape the input data to obtain single trial timecourses efficiently
     %     %in the presence of filters pre-computed on the average (or whatever)
     %     tmpdat = reshape(permute(avg,[2 3 1]),[size_avg(2) size_avg(3)*size_avg(1)]);
-    %     tmpdip = beamformer_lcmv(sourcemodel, sens, headmodel, tmpdat, squeeze(mean(Cy,1)), methodopt{:}, leadfieldopt{:});
+    %     tmpdip = ft_inverse_lcmv(sourcemodel, sens, headmodel, tmpdat, squeeze(mean(Cy,1)), methodopt{:}, leadfieldopt{:});
     %     tmpmom = tmpdip.mom{tmpdip.inside(1)};
     %     sizmom = size(tmpmom);
     %
@@ -1082,7 +1081,7 @@ elseif istimelock && any(strcmp(cfg.method, {'lcmv', 'sam', 'mne','harmony', 'rv
       squeeze_avg = reshape(avg(i,:,:),[size_avg(2) size_avg(3)]);
       squeeze_Cy  = reshape(Cy(i,:,:), [size_Cy(2)  size_Cy(3)]);
       fprintf('scanning repetition %d\n', i);
-      dip(i) = ft_sloreta(sourcemodel, sens, headmodel, squeeze_avg, squeeze_Cy, methodopt{:}, leadfieldopt{:});
+      dip(i) = ft_inverse_sloreta(sourcemodel, sens, headmodel, squeeze_avg, squeeze_Cy, methodopt{:}, leadfieldopt{:});
     end
     
   elseif strcmp(cfg.method, 'eloreta')
@@ -1090,9 +1089,9 @@ elseif istimelock && any(strcmp(cfg.method, {'lcmv', 'sam', 'mne','harmony', 'rv
       squeeze_avg = reshape(avg(i,:,:),[size_avg(2) size_avg(3)]);
       squeeze_Cy  = reshape(Cy(i,:,:), [size_Cy(2)  size_Cy(3)]);
       fprintf('scanning repetition %d\n', i);
-      dip(i) = ft_eloreta(sourcemodel, sens, headmodel, squeeze_avg, squeeze_Cy, methodopt{:}, leadfieldopt{:});
+      dip(i) = ft_inverse_eloreta(sourcemodel, sens, headmodel, squeeze_avg, squeeze_Cy, methodopt{:}, leadfieldopt{:});
     end
-  elseif strcmp(cfg.method, 'sam')   
+  elseif strcmp(cfg.method, 'sam')
     % convert time in samples for Evoked Related SAM
     latency = ft_getopt(methodopt, 'latency_toi');
     toi     = ft_getopt(methodopt, 'toi');
@@ -1106,14 +1105,14 @@ elseif istimelock && any(strcmp(cfg.method, {'lcmv', 'sam', 'mne','harmony', 'rv
       squeeze_Cy  = reshape(Cy(i,:,:), [size_Cy(2)  size_Cy(3)]);
       squeeze_avg = reshape(avg(i,:,:),[size_avg(2) size_avg(3)]);
       fprintf('scanning repetition %d\n', i);
-      dip(i) = beamformer_sam(sourcemodel, sens, headmodel, squeeze_avg, squeeze_Cy, methodopt{:}, leadfieldopt{:});    
+      dip(i) = ft_inverse_sam(sourcemodel, sens, headmodel, squeeze_avg, squeeze_Cy, methodopt{:}, leadfieldopt{:});
     end
   elseif strcmp(cfg.method, 'pcc')
     for i=1:Nrepetitions
       squeeze_avg = reshape(avg(i,:,:),[size_avg(2) size_avg(3)]);
       squeeze_Cy  = reshape(Cy(i,:,:), [size_Cy(2)  size_Cy(3)]);
       fprintf('scanning repetition %d\n', i);
-      dip(i) = beamformer_pcc(sourcemodel, sens, headmodel, squeeze_avg, squeeze_Cy, methodopt{:}, leadfieldopt{:}, 'refdip', cfg.refdip, 'refchan', refchanindx, 'supchan', supchanindx);
+      dip(i) = ft_inverse_pcc(sourcemodel, sens, headmodel, squeeze_avg, squeeze_Cy, methodopt{:}, leadfieldopt{:}, 'refdip', cfg.refdip, 'refchan', refchanindx, 'supchan', supchanindx);
     end
   elseif strcmp(cfg.method, 'mne')
     for i=1:Nrepetitions
@@ -1121,9 +1120,9 @@ elseif istimelock && any(strcmp(cfg.method, {'lcmv', 'sam', 'mne','harmony', 'rv
       squeeze_avg = reshape(avg(i,:,:),[size_avg(2) size_avg(3)]);
       if hascovariance
         squeeze_Cy  = reshape(Cy(i,:,:), [size_Cy(2)  size_Cy(3)]);
-        dip(i) = minimumnormestimate(sourcemodel, sens, headmodel, squeeze_avg, methodopt{:}, leadfieldopt{:}, 'noisecov', squeeze_Cy);
+        dip(i) = ft_inverse_mne(sourcemodel, sens, headmodel, squeeze_avg, methodopt{:}, leadfieldopt{:}, 'noisecov', squeeze_Cy);
       else
-        dip(i) = minimumnormestimate(sourcemodel, sens, headmodel, squeeze_avg, methodopt{:}, leadfieldopt{:});
+        dip(i) = ft_inverse_mne(sourcemodel, sens, headmodel, squeeze_avg, methodopt{:}, leadfieldopt{:});
       end
     end
   elseif strcmp(cfg.method, 'harmony')
@@ -1132,16 +1131,16 @@ elseif istimelock && any(strcmp(cfg.method, {'lcmv', 'sam', 'mne','harmony', 'rv
       squeeze_avg = reshape(avg(i,:,:),[size_avg(2) size_avg(3)]);
       if hascovariance
         squeeze_Cy  = reshape(Cy(i,:,:), [size_Cy(2)  size_Cy(3)]);
-        dip(i) = harmony(sourcemodel, sens, headmodel, squeeze_avg, methodopt{:}, leadfieldopt{:}, 'noisecov', squeeze_Cy);
+        dip(i) = ft_inverse_harmony(sourcemodel, sens, headmodel, squeeze_avg, methodopt{:}, leadfieldopt{:}, 'noisecov', squeeze_Cy);
       else
-        dip(i) = harmony(sourcemodel, sens, headmodel, squeeze_avg, methodopt{:}, leadfieldopt{:});
+        dip(i) = ft_inverse_harmony(sourcemodel, sens, headmodel, squeeze_avg, methodopt{:}, leadfieldopt{:});
       end
     end
   elseif strcmp(cfg.method, 'rv')
     for i=1:Nrepetitions
       fprintf('estimating residual variance at each source position for repetition %d\n', i);
       squeeze_avg = reshape(avg(i,:,:),[size_avg(2) size_avg(3)]);
-      dip(i) = residualvariance(sourcemodel, sens, headmodel, squeeze_avg,      methodopt{:}, leadfieldopt{:});
+      dip(i) = ft_inverse_rv(sourcemodel, sens, headmodel, squeeze_avg,      methodopt{:}, leadfieldopt{:});
     end
   elseif strcmp(cfg.method, 'music')
     for i=1:Nrepetitions
@@ -1149,9 +1148,9 @@ elseif istimelock && any(strcmp(cfg.method, {'lcmv', 'sam', 'mne','harmony', 'rv
       squeeze_avg = reshape(avg(i,:,:),[size_avg(2) size_avg(3)]);
       if hascovariance
         squeeze_Cy  = reshape(Cy(i,:,:), [size_Cy(2)  size_Cy(3)]);
-        dip(i) = music(sourcemodel, sens, headmodel, squeeze_avg, 'cov', squeeze_Cy, methodopt{:}, leadfieldopt{:});
+        dip(i) = ft_inverse_music(sourcemodel, sens, headmodel, squeeze_avg, 'cov', squeeze_Cy, methodopt{:}, leadfieldopt{:});
       else
-        dip(i) = music(sourcemodel, sens, headmodel, squeeze_avg,                    methodopt{:}, leadfieldopt{:});
+        dip(i) = ft_inverse_music(sourcemodel, sens, headmodel, squeeze_avg,                    methodopt{:}, leadfieldopt{:});
       end
     end
   elseif strcmp(cfg.method, 'mvl')

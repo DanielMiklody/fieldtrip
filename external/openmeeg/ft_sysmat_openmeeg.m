@@ -85,14 +85,9 @@ try
         str = ' -DSMNA';
     else
         str = ' -DSM';
-    end
-    if 0%isfield(headmodel,'inner_skull_surface')
-        source=[bndlabel{end}];
-    else
-        source='';
-    end
+    end    
    
-    om_status = system([prefix 'om_assemble' str ' ' geomfile ' ' condfile ' ' dipfile ' ' dsmfile ' ' source]);
+    om_status = system([prefix 'om_assemble' str ' ' geomfile ' ' condfile ' ' dipfile ' ' dsmfile]);
     
     if(om_status ~= 0) % status = 0 if successful
         ft_error(['Aborting OpenMEEG pipeline due to above error.']);

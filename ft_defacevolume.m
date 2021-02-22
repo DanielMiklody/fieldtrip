@@ -16,7 +16,7 @@ function mri = ft_defacevolume(cfg, mri)
 % If you specify the box method, the following options apply
 %   cfg.translate  = initial position of the center of the box (default = [0 0 0])
 %   cfg.scale      = initial size of the box along each dimension (default is automatic)
-%   cfg.translate  = initial rotation of the box (default = [0 0 0])
+%   cfg.rotate     = initial rotation of the box (default = [0 0 0])
 %   cfg.selection  = which voxels to keep, can be 'inside' or 'outside' (default = 'outside')
 %   cfg.smooth     = 'no' or the FWHM of the gaussian kernel in voxels (default = 'no')
 %   cfg.keepbrain  = 'no' or 'yes', segment and retain the brain (default = 'no')
@@ -137,7 +137,7 @@ switch cfg.method
         axmax = 0.15;
         rbol  = 0.005;
       otherwise
-        ft_error('unknown units (%s)', unit);
+        ft_error('unknown units "%s"', unit);
     end
     
     figHandle = figure;
@@ -335,6 +335,9 @@ switch cfg.method
     
     % remove the temporary fields from the configuration, keep the rest for provenance
     cfg = removefields(cfg, {'R', 'S', 'T'});
+
+  otherwise
+    ft_error('unsupported method');
 end
 
 % do the general cleanup and bookkeeping at the end of the function

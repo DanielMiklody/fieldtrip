@@ -9,9 +9,7 @@ function [timelock] = ft_appendtimelock(cfg, varargin)
 % Use as
 %   combined = ft_appendtimelock(cfg, timelock1, timelock2, ...)
 %
-% The following configuration options are supported:
-%
-% The configuration can optionally contain
+% The configuration can contain
 %   cfg.appenddim       = string, the dimension to concatenate over which to append,
 %                         this can be 'chan' and 'rpt' (default is automatic)
 %   cfg.tolerance       = scalar, tolerance to determine how different the time axes
@@ -63,7 +61,7 @@ end
 cfg.channel         = ft_getopt(cfg, 'channel', 'all');
 cfg.parameter       = ft_getopt(cfg, 'parameter', []);
 cfg.appenddim       = ft_getopt(cfg, 'appenddim', []);
-cfg.tolerance       = ft_getopt(cfg, 'tolerance',  1e-5);
+cfg.tolerance       = ft_getopt(cfg, 'tolerance',  1e-5); % this is passed to append_common, which passes it to ft_selectdata
 cfg.appendsens      = ft_getopt(cfg, 'appendsens', 'no');
 cfg.keepsampleinfo  = ft_getopt(cfg, 'keepsampleinfo', 'no');
 
@@ -113,7 +111,7 @@ assert(~isempty(cfg.parameter), 'cfg.parameter should be specified');
 if any(strcmp(cfg.parameter, 'avg')) && any(strcmp(cfg.parameter, 'trial'))
   ft_warning('appending the individual trials, not the averages');
   % also prevent var and dof from being appended
-  cfg.parameter = setdiff(cfg.parameter, {'avg', 'var', 'dof'}); 
+  cfg.parameter = setdiff(cfg.parameter, {'avg', 'var', 'dof'});
 end
 
 % use a low-level function that is shared with the other ft_appendxxx functions

@@ -2,6 +2,7 @@ function test_bug3336
 
 % WALLTIME 00:10:00
 % MEM 2gb
+% DEPENDENCY
 
 % there are two versions: one with error() and one with ft_error()
 % these should give the same result
@@ -22,7 +23,6 @@ end
 
 assert(~isequal(err1.message, err2.message))
 assert(isequal(err1.identifier, err2.identifier))
-assert(numel(err1.stack)==numel(err2.stack))
 
 % idem for warnings
 % but here I cannot get access to the stack

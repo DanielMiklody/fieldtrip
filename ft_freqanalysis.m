@@ -13,7 +13,7 @@ function [freq] = ft_freqanalysis(cfg, data)
 % The configuration should contain:
 %   cfg.method      = different methods of calculating the spectra
 %                     'mtmfft', analyses an entire spectrum for the entire data
-%                       length, implements multitaper frequency transformation
+%                       length, implements multitaper frequency transformation.
 %                     'mtmconvol', implements multitaper time-frequency
 %                       transformation based on multiplication in the
 %                       frequency domain.
@@ -110,6 +110,30 @@ function [freq] = ft_freqanalysis(cfg, data)
 %   cfg.gwidth     = determines the length of the used wavelets in standard
 %                    deviations of the implicit Gaussian kernel and should
 %                    be choosen >= 3; (default = 3)
+%
+% The standard deviation in the frequency domain (sf) at frequency f0 is
+% defined as: sf = f0/width
+% The standard deviation in the temporal domain (st) at frequency f0 is
+% defined as: st = 1/(2*pi*sf)
+%
+%
+% SUPERLET performs time-frequency analysis on any time series trial data using the
+% 'wavelet method' based on a frequency-wise combination of Morlet wavelets of varying cycle 
+% widths (see Moca et al. 2019, https://doi.org/10.1101/583732).
+%   cfg.foi                 = vector 1 x numfoi, frequencies of interest
+%       OR
+%   cfg.foilim              = [begin end], frequency band of interest
+%   cfg.toi                 = vector 1 x numtoi, the times on which the analysis
+%                             windows should be centered (in seconds)
+%   cfg.superlet.basewidth  = 'width', or number of cycles, of the base wavelet (default = 3)
+%   cfg.superlet.gwidth     = determines the length of the used wavelets in standard
+%                             deviations of the implicit Gaussian kernel and should
+%                             be choosen >= 3; (default = 3)
+%   cfg.superlet.combine    = 'additive', 'multiplicative' (default = 'additive')
+%                             determines if cycle numbers of wavelets comprising a superlet 
+%                             are chosen additively or multiplicatively
+%   cfg.superlet.order      = vector 1 x numfoi, superlet order, i.e. number of combined 
+%                             wavelets, for individual frequencies of interest.
 %
 % The standard deviation in the frequency domain (sf) at frequency f0 is
 % defined as: sf = f0/width
@@ -223,7 +247,7 @@ cfg = ft_checkconfig(cfg, 'forbidden',   {'latency'}); % see bug 1376 and 1076
 cfg = ft_checkconfig(cfg, 'renamedval',  {'method', 'wltconvol', 'wavelet'});
 
 % select channels and trials of interest, by default this will select all channels and trials
-tmpcfg = keepfields(cfg, {'trials', 'channel', 'showcallinfo'});
+tmpcfg = keepfields(cfg, {'trials', 'channel', 'tolerance', 'showcallinfo'});
 data = ft_selectdata(tmpcfg, data);
 % restore the provenance information
 [cfg, data] = rollback_provenance(cfg, data);
@@ -247,7 +271,8 @@ switch cfg.method
     end
     % check for foi above Nyquist
     if isfield(cfg, 'foi')
-      if any(cfg.foi > (data.fsample/2))
+      if any(cfg.foi > (data.fsample+100*eps(data.fsample))/2)
+        % add a small number to allow for numeric tolerance issues
         ft_error('frequencies in cfg.foi are above Nyquist')
       end
       if isequal(cfg.taper, 'dpss') && not(isfield(cfg, 'tapsmofrq'))
@@ -285,9 +310,35 @@ switch cfg.method
       ft_error('you must specify a smoothing parameter with taper = dpss');
     end
     
+  case 'irasa'
+    cfg.taper       = ft_getopt(cfg, 'taper', 'hanning');
+    cfg.output      = ft_getopt(cfg, 'output', 'fractal');
+    cfg.pad         = ft_getopt(cfg, 'pad', 'nextpow2');
+    if ~isequal(cfg.taper, 'hanning')
+      ft_error('the irasa method supports hanning tapers only');
+    end
+    if ~isequal(cfg.pad, 'nextpow2')
+      ft_warning('consider using cfg.pad=''nextpow2'' for the irasa method');
+    end
+    % check for foi above Nyquist
+    if isfield(cfg, 'foi')
+      if any(cfg.foi > (data.fsample/2))
+        ft_error('frequencies in cfg.foi are above Nyquist')
+      end
+    end
+    
   case 'wavelet'
     cfg.width  = ft_getopt(cfg, 'width',  7);
     cfg.gwidth = ft_getopt(cfg, 'gwidth', 3);
+
+  case 'superlet'
+    cfg.superlet.basewidth = ft_getopt(cfg.superlet, 'basewidth', 3);
+    cfg.superlet.gwidth = ft_getopt(cfg.superlet, 'gwidth', 3);
+    cfg.superlet.combine = ft_getopt(cfg.superlet, 'combine', 'additive');
+    cfg.superlet.order = ft_getopt(cfg.superlet, 'order', ones(1, numel(cfg.foi)));
+    if size(cfg.superlet.order) ~= size(cfg.foi)
+      ft_error('cfg.foi and cfg.superlet.order must be the same size');
+    end
     
   case 'tfr'
     cfg = ft_checkconfig(cfg, 'renamed', {'waveletwidth', 'width'});
@@ -324,7 +375,7 @@ if isempty(cfg.pad)
   cfg.pad = 'maxperlen';
 end
 cfg.padtype   = ft_getopt(cfg, 'padtype',   'zero');
-cfg.output    = ft_getopt(cfg, 'output',    'pow');
+cfg.output    = ft_getopt(cfg, 'output',    'pow'); % the default for irasa is set earlier
 cfg.calcdof   = ft_getopt(cfg, 'calcdof',   'no');
 cfg.channel   = ft_getopt(cfg, 'channel',   'all');
 cfg.precision = ft_getopt(cfg, 'precision', 'double');
@@ -363,7 +414,7 @@ if strcmp(cfg.keeptrials, 'yes') && strcmp(cfg.keeptapers, 'yes')
 end
 
 % Set flags for output
-if strcmp(cfg.output, 'pow')
+if ismember(cfg.output, {'pow','fractal','original'})
   powflg = 1;
   csdflg = 0;
   fftflg = 0;
@@ -461,9 +512,9 @@ end
 
 % options that don't change over trials
 if isfield(cfg, 'tapsmofrq')
-  options = {'pad', cfg.pad, 'padtype', cfg.padtype, 'freqoi', cfg.foi, 'tapsmofrq', cfg.tapsmofrq, 'polyorder', cfg.polyremoval};
+  options = {'pad', cfg.pad, 'padtype', cfg.padtype, 'freqoi', cfg.foi, 'tapsmofrq', cfg.tapsmofrq, 'polyorder', cfg.polyremoval, 'output', cfg.output};
 else
-  options = {'pad', cfg.pad, 'padtype', cfg.padtype, 'freqoi', cfg.foi, 'polyorder', cfg.polyremoval};
+  options = {'pad', cfg.pad, 'padtype', cfg.padtype, 'freqoi', cfg.foi, 'polyorder', cfg.polyremoval, 'output', cfg.output};
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -472,17 +523,18 @@ end
 % this is done on trial basis to save memory
 
 ft_progress('init', cfg.feedback, 'processing trials');
+trlcnt = []; % only some methods need this variable, but it needs to be defined outside the trial loop
 for itrial = 1:ntrials
   
-  %disp(['processing trial ' num2str(itrial) ': ' num2str(size(data.trial{itrial},2)) ' samples']);
   fbopt.i = itrial;
   fbopt.n = ntrials;
   
   dat = data.trial{itrial}; % chansel has already been performed
   time = data.time{itrial};
   
-  % Perform specest call and set some specifics
   clear spectrum % in case of very large trials, this lowers peak mem usage a bit
+  
+  % Perform specest call and set some specifics
   switch cfg.method
     
     case 'mtmconvol'
@@ -509,9 +561,63 @@ for itrial = 1:ntrials
     case 'mtmfft'
       [spectrum,ntaper,foi] = ft_specest_mtmfft(dat, time, 'taper', cfg.taper, options{:}, 'feedback', fbopt);
       hastime = false;
-      
+    
+    case 'irasa'
+      [spectrum,ntaper,foi] = ft_specest_irasa(dat, time, options{:}, 'feedback', fbopt);
+      hastime = false;
+
     case 'wavelet'
       [spectrum,foi,toi] = ft_specest_wavelet(dat, time, 'timeoi', cfg.toi, 'width', cfg.width, 'gwidth', cfg.gwidth,options{:}, 'feedback', fbopt);
+      
+      % the following variable is created to keep track of the number of
+      % trials per time bin and is needed for proper normalization if
+      % keeprpt==1 and the triallength is variable
+      if itrial==1, trlcnt = zeros(1, numel(foi), numel(toi)); end
+      
+      hastime = true;
+      % create FAKE ntaper (this requires very minimal code change below for compatibility with the other specest functions)
+      ntaper = ones(1,numel(foi));
+      % modify spectrum for same reason as fake ntaper
+      spectrum = reshape(spectrum,[1 nchan numel(foi) numel(toi)]);
+
+    case 'superlet'
+      % calculate number of wavelets and respective cycle width dependent on superlet order
+      % equivalent one-liners: 
+      %   multiplicative: cycles = arrayfun(@(order) arrayfun(@(wl_num) cfg.superlet.basewidth*wl_num, 1:order), cfg.superlet.order,'uni',0)
+      %   additive: cycles = arrayfun(@(order) arrayfun(@(wl_num) cfg.superlet.basewidth+wl_num-1, 1:order), cfg.superlet.order,'uni',0)
+      cycles = cell(length(cfg.foi),1);
+      for i_f = 1:length(cfg.foi)
+        frq_cyc = NaN(1,cfg.superlet.order(i_f));
+        if strcmp(cfg.superlet.combine, 'multiplicative')
+          for i_wl = 1:cfg.superlet.order(i_f)
+            frq_cyc(i_wl) = cfg.superlet.basewidth*i_wl;
+          end
+        elseif strcmp(cfg.superlet.combine, 'additive')
+          for i_wl = 1:cfg.superlet.order(i_f)
+            frq_cyc(i_wl) = cfg.superlet.basewidth+i_wl-1;
+          end
+        end
+        cycles{i_f} = frq_cyc;
+      end
+
+      % compute superlets
+      spectrum = NaN(nchan,length(cfg.foi),length(cfg.toi));
+      % index of 'freqoi' value in 'options'
+      idx_freqoi = find(ismember(options(1:2:end), 'freqoi'))*2;
+      foi = options{idx_freqoi};
+      for i_f = 1:length(cfg.foi)
+        % collext individual wavelets' responses per frequency
+        spec_f = NaN(cfg.superlet.order(i_f), nchan, length(cfg.toi));
+        opt = options;
+        opt{idx_freqoi} = cfg.foi(i_f);
+        % compute responses for individual wavelets
+        for i_wl = 1:cfg.superlet.order(i_f)
+          [spec_f(i_wl,:,:),~,toi] = ft_specest_wavelet(dat, time, 'timeoi', cfg.toi, 'width', cycles{i_f}(i_wl), 'gwidth', cfg.superlet.gwidth, opt{:}, 'feedback', fbopt);
+        end
+        % geometric mean across individual wavelets
+        spectrum(:,i_f,:) = prod(spec_f, 1).^(1/cfg.superlet.order(i_f));
+      end
+      clear spec_f
       
       % the following variable is created to keep track of the number of
       % trials per time bin and is needed for proper normalization if
@@ -634,7 +740,7 @@ for itrial = 1:ntrials
       % by using this vector below for indexing, the below code does not need to be duplicated for mtmconvol
       foiind = 1:nfoi;
     end
-
+    
     for ifoi = 1:nfoi
       if strcmp(cfg.method, 'mtmconvol')
         spectrum = reshape(permute(spectrum_mtmconvol(:,:,freqtapind{ifoi}),[3 1 2]),[ntaper(ifoi) nchan 1 ntoi]);
@@ -652,7 +758,11 @@ for itrial = 1:ntrials
       
       acttap = logical([ones(ntaper(ifoi),1);zeros(size(spectrum,1)-ntaper(ifoi),1)]);
       if powflg
-        powdum = abs(spectrum(acttap,:,foiind(ifoi),acttboi)) .^2;
+        if strcmp(cfg.method, 'irasa') % ft_specest_irasa outputs power and not amplitude
+          powdum = spectrum(acttap,:,foiind(ifoi),acttboi);
+        else
+          powdum = abs(spectrum(acttap,:,foiind(ifoi),acttboi)) .^2;
+        end
         % sinetaper scaling is disabled, because it is not consistent with the other
         % tapers. if scaling is required, please specify cfg.taper =
         % 'sine_old'
@@ -671,14 +781,14 @@ for itrial = 1:ntrials
         fourierdum = spectrum(acttap,:,foiind(ifoi),acttboi);
       end
       if csdflg
-        csddum =      spectrum(acttap,cutdatindcmb(:,1),foiind(ifoi),acttboi) .* conj(spectrum(acttap,cutdatindcmb(:,2),foiind(ifoi),acttboi));
+        csddum = spectrum(acttap,cutdatindcmb(:,1),foiind(ifoi),acttboi) .* conj(spectrum(acttap,cutdatindcmb(:,2),foiind(ifoi),acttboi));
       end
       
       % switch between keep's
       switch keeprpt
         
         case 1 % cfg.keeptrials, 'no' &&  cfg.keeptapers, 'no'
-          if exist('trlcnt', 'var')
+          if ~isempty(trlcnt)
             trlcnt(1, ifoi, :) = trlcnt(1, ifoi, :) + shiftdim(double(acttboi(:)'),-1);
           end
           
@@ -738,7 +848,11 @@ for itrial = 1:ntrials
     %rptind = reshape(1:ntrials .* maxtap,[maxtap ntrials]);
     %currrptind = rptind(:,itrial);
     if powflg
-      powspctrm(currrptind,:,:) = abs(spectrum).^2;
+      if strcmp(cfg.method, 'irasa') % ft_specest_irasa outputs power and not amplitude
+        powspctrm(currrptind,:,:) = spectrum;
+      else
+        powspctrm(currrptind,:,:) = abs(spectrum).^2;
+      end
     end
     if fftflg
       fourierspctrm(currrptind,:,:,:) = spectrum;

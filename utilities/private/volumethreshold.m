@@ -1,16 +1,16 @@
-function [output] = volumethreshold(input, thresh, str)
+function [output] = volumethreshold(input, threshold, tissuelabel)
 
 % VOLUMETHRESHOLD is a helper function for segmentations. It applies a
 % relative threshold and subsequently looks for the largest connected part,
 % thereby removing small blobs such as vitamine E capsules.
 %
-% See also VOLUMEFILLHOLES, VOLUMESMOOTH
+% See also VOLUMEFILLHOLES, VOLUMESMOOTH, VOLUMEPAD
 
-if nargin<2 || isempty(thresh)
-  thresh = 0;
+if nargin<2 || isempty(threshold)
+  threshold = 0;
 end
-if nargin<3 || isempty(str)
-  str = 'volume';
+if nargin<3 || isempty(tissuelabel)
+  tissuelabel = 'volume';
 end
 
 % ensure that SPM is available, needed for spm_bwlabel
@@ -20,10 +20,16 @@ hasspm = ft_hastoolbox('spm8up', 3) || ft_hastoolbox('spm2', 1);
 % that no holes are within the compartment and do a two-pass
 % approach to eliminate potential vitamin E capsules etc.
 
-if ~islogical(input)
+% ensure the input volume to be double precision, to allow for
+% computations, unless it's already boolean
+if ~isa(input, 'double') && ~isa(input, 'logical')
+  input = double(input);
+end
+
+if ~isa(input, 'logical')
   if nargin==2, ft_error('if the input volume is not a boolean volume, you need to define a threshold value'); end
-  if nargin==3, fprintf('thresholding %s at a relative threshold of %0.3f\n', str, thresh); end
-  output = double(input>(thresh*max(input(:))));
+  if nargin==3, fprintf('thresholding %s at a relative threshold of %0.3f\n', tissuelabel, threshold); end
+  output = double(input>(threshold*max(input(:))));
 else
   % there is no reason to apply a threshold, but spm_bwlabel still needs a
   % double input for clustering

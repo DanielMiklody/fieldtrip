@@ -1,33 +1,28 @@
 function [dataout] = ft_denoise_prewhiten(cfg, datain, noise)
 
-% FT_DENOISE_PREWHITEN applies a spatial prewhitening operation to the data
-% using the inverse noise covariance matrix. The consequence is that
-% all channels are expressed in singnal-to-noise units, causing
-% different channel types to be comparable. This ensures equal
-% weighting in source estimation on data with different channel types.
+% FT_DENOISE_PREWHITEN applies a spatial prewhitening operation to the data using the
+% inverse noise covariance matrix. The consequence is that all channels are expressed
+% in singnal-to-noise units, causing different channel types to be comparable. This
+% ensures equal weighting in source estimation on data with different channel types.
 %
 % Use as
 %   dataout = ft_denoise_prewhiten(cfg, datain, noise)
-% where the datain is the original data from FT_PREPROCESSING, where
+% where the datain is the original data from FT_PREPROCESSING and
 % noise should contain the estimated noise covariance from
 % FT_TIMELOCKANALYSIS.
 %
 % The configuration structure can contain
 %   cfg.channel     = cell-array, see FT_CHANNELSELECTION (default = 'all')
 %   cfg.split       = cell-array of channel types between which covariance is split, it can also be 'all' or 'no'
-%   cfg.lambda      = scalar, or string
-%   cfg.kappa       = scalar
+%   cfg.lambda      = scalar, or string, regularization parameter for the inverse
+%   cfg.kappa       = scalar, truncation parameter for the inverse
 %
-% The channel selection relates to the channels that are pre-whitened
-% using the same selection of channels in the noise covariance.
-% All channels present in the input data structure will be present in the
-% output, including trigger and
-% other auxiliary channels.
+% The channel selection relates to the channels that are pre-whitened using the same
+% selection of channels in the noise covariance. All channels present in the input
+% data structure will be present in the output, including trigger and other auxiliary
+% channels.
 %
-% The lambda/kappa/tolerance values relate to how the inverse of the noise
-% covariance is computed by FT_INV
-%
-% See also FT_DENOISE_SYNTHETIC, FT_DENOISE_PCA FT_INV
+% See also FT_DENOISE_SYNTHETIC, FT_DENOISE_PCA, FT_DENOISE_DSSP, FT_DENOISE_TSP
 
 % Copyright (C) 2018-2019, Robert Oostenveld and Jan-Mathijs Schoffelen
 %
@@ -73,6 +68,7 @@ cfg.split   = ft_getopt(cfg, 'split',   'all');
 cfg.lambda  = ft_getopt(cfg, 'lambda',  0);
 cfg.kappa   = ft_getopt(cfg, 'kappa',   []);
 cfg.tol     = ft_getopt(cfg, 'tol',     []);
+cfg.realflag = ft_getopt(cfg, 'realflag', true); % for complex-valued crsspctrm
 cfg.invmethod = ft_getopt(cfg, 'invmethod', 'tikhonov');
 
 % ensure that the input data is correct, the next line is needed for a
@@ -80,7 +76,7 @@ cfg.invmethod = ft_getopt(cfg, 'invmethod', 'tikhonov');
 % for meggrad data)
 if isfield(datain, 'hdr'), datain = rmfield(datain, 'hdr'); end
 
-datain = ft_checkdata(datain, 'datatype', {'raw' 'timelock' 'freq'}, 'haschantype', 'yes', 'haschanunit', 'yes'); 
+datain = ft_checkdata(datain, 'datatype', {'raw' 'timelock' 'freq'}, 'haschantype', 'yes', 'haschanunit', 'yes');
 noise  = ft_checkdata(noise,  'datatype', {      'timelock' 'freq'}, 'haschantype', 'yes', 'haschanunit', 'yes');
 
 dtype_datain = ft_datatype(datain);
@@ -103,7 +99,7 @@ switch dtype_datain
 end
 
 % select channels and trials of interest, by default this will select all channels and trials
-tmpcfg = keepfields(cfg, {'trials', 'channel', 'showcallinfo'});
+tmpcfg = keepfields(cfg, {'trials', 'channel', 'tolerance', 'showcallinfo'});
 datain = ft_selectdata(tmpcfg, datain);
 noise  = ft_selectdata(tmpcfg, noise);
 
@@ -117,20 +113,22 @@ if ft_datatype(noise, 'timelock')
   else
     noisecov = noise.cov;
   end
-elseif ft_datatype(noise, 'freq') 
+elseif ft_datatype(noise, 'freq')
   if ~isfield(noise, 'crsspctrm')
     ft_error('noise cross-spectrum is not present');
   else
-    noisecov = real(noise.crsspctrm);
+    if istrue(cfg.realflag)
+      noisecov = real(noise.crsspctrm);
+    else
+      noisecov = noise.crsspctrm;
+    end
   end
 end
 
 % determine whether it is EEG and/or MEG data
-haselec = isfield(datain, 'elec');
 hasgrad = isfield(datain, 'grad');
-% if haselec && hasgrad
-%   ft_error('mixed covariance prewhitening is not supported for combined EEG/MEG');
-% end
+haselec = isfield(datain, 'elec');
+hasopto = isfield(datain, 'opto');
 
 if isequal(cfg.split, 'no')
   chantype = {};
@@ -141,18 +139,37 @@ else
 end
 
 % zero out the off-diagonal elements for the specified channel types
-for i=1:numel(chantype)
-  sel = strcmp(noise.chantype, chantype{i});
-  noisecov(sel,~sel) = 0;
-  noisecov(~sel,sel) = 0;
+if numel(chantype)>0
+  invnoise = zeros(size(noisecov));
+  tra      = zeros(size(noisecov));
+  for i=1:numel(chantype)
+    sel = strcmp(noise.chantype, chantype{i});
+    %noisecov(sel,~sel) = 0;
+    %noisecov(~sel,sel) = 0;
+    invnoise(sel,sel) = ft_inv(noisecov(sel,sel), 'lambda', cfg.lambda, 'kappa', cfg.kappa, 'tolerance', cfg.tol, 'method', cfg.invmethod);
+    [U,S,V]           = svd(invnoise(sel,sel), 'econ');
+    diagS             = diag(S)./numel(chantype);
+    selS              = 1:rank(invnoise(sel,sel));
+    tra(sel,sel)      = U(:,selS)*diag(sqrt(diagS(selS)))*U(:,selS)';
+  end
+  %invnoise = ft_inv(noisecov, 'lambda', cfg.lambda, 'kappa', cfg.kappa, 'tolerance', cfg.tol, 'method', cfg.invmethod);
+
+else
+  % invert the noise covariance matrix
+  invnoise = ft_inv(noisecov, 'lambda', cfg.lambda, 'kappa', cfg.kappa, 'tolerance', cfg.tol, 'method', cfg.invmethod);
+  [U,S,V]  = svd(invnoise,'econ');
+  diagS    = diag(S);
+  %sel     = diagS./diagS(1)>1e-12;
+  sel      = 1:rank(invnoise);
+  
+  
+  % the prewhitening projection first rotates to orthogonal channels,
+  % then scales, and then rotates the channels back to (more or less)
+  % their original MEG-channel representation
+  tra      = U(:,sel)*diag(sqrt(diagS(sel)))*U(:,sel)';
 end
-
-% invert the noise covariance matrix
-invnoise = ft_inv(noisecov, 'lambda', cfg.lambda, 'kappa', cfg.kappa, 'tolerance', cfg.tol, 'method', cfg.invmethod);
-[U,S,V]  = svd(invnoise,'econ');
-
 prewhiten             = [];
-prewhiten.tra         = U*sqrt(S)*U';
+prewhiten.tra         = tra;
 prewhiten.labelold    = noise.label;
 prewhiten.labelnew    = noise.label;
 prewhiten.chantypeold = noise.chantype;
@@ -161,7 +178,7 @@ prewhiten.chanunitold = noise.chanunit;
 prewhiten.chanunitnew = repmat({'snr'}, size(noise.chantype));
 
 % apply the projection to the data
-dataout = ft_apply_montage(datain, prewhiten, 'keepunused', 'yes');
+dataout = ft_apply_montage(removefields(datain, {'grad', 'elec', 'opto'}), prewhiten, 'keepunused', 'yes');
 
 if hasgrad
   % the gradiometer structure needs to be updated to ensure that the forward model remains consistent with the data
@@ -173,10 +190,14 @@ if haselec
   dataout.elec = ft_apply_montage(datain.elec, prewhiten, 'balancename', 'prewhiten');
 end
 
+if hasopto
+  % the electrode structure needs to be updated to ensure that the forward model remains consistent
+  dataout.opto = ft_apply_montage(datain.opto, prewhiten, 'balancename', 'prewhiten');
+end
+
 ft_postamble debug
 ft_postamble trackconfig
 ft_postamble previous   datain
 ft_postamble provenance dataout
 ft_postamble history    dataout
 ft_postamble savevar    dataout
-

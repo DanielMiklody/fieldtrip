@@ -1,14 +1,17 @@
 function [channel] = ft_channelselection(desired, datachannel, senstype)
 
-% FT_CHANNELSELECTION makes a selection of EEG and/or MEG channel labels.
-% This function translates the user-specified list of channels into channel
-% labels as they occur in the data. This channel selection procedure can be
-% used throughout FieldTrip.
+% FT_CHANNELSELECTION makes a selection of EEG and/or MEG channel labels. This
+% function translates the user-specified list of channels into channel labels as they
+% occur in the data. This channel selection procedure can be used throughout
+% FieldTrip.
 %
-% You can specify a mixture of real channel labels and of special strings,
-% or index numbers that will be replaced by the corresponding channel
-% labels. Channels that are not present in the raw datafile are
-% automatically removed from the channel list.
+% You can specify a mixture of real channel labels and of special strings, or index
+% numbers that will be replaced by the corresponding channel labels. Channels that
+% are not present in the raw datafile are automatically removed from the channel
+% list.
+%
+% The order of the channels in the list that is returned corresponds to the order in
+% the data.
 %
 % E.g. the desired input specification can be:
 %   'all'        is replaced by all channels in the datafile
@@ -47,9 +50,6 @@ function [channel] = ft_channelselection(desired, datachannel, senstype)
 % See also FT_PREPROCESSING, FT_SENSLABEL, FT_MULTIPLOTER, FT_MULTIPLOTTFR,
 % FT_SINGLEPLOTER, FT_SINGLEPLOTTFR
 
-% Note that the order of channels that is returned should correspond with
-% the order of the channels in the data.
-
 % Copyright (C) 2003-2016, Robert Oostenveld
 %
 % This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
@@ -77,7 +77,12 @@ if isempty(recursion)
   recursion = false;
 end
 
-if nargin<3
+if isempty(desired)
+  % ensure this is an empty cell-array, not an empty numeric array
+  desired = {};
+end
+
+if nargin<3 || isempty(senstype)
   senstype = ft_senstype(datachannel);
 end
 
@@ -150,6 +155,52 @@ if length(chanindx)==length(channel)
   return
 end
 
+% initialize all the system-specific variables to empty
+labelall       = {};
+labelreg       = {};
+labelmeg       = {};
+labelecg       = {};
+labelemg       = {};
+labeleeg       = {};
+label102       = {};
+label101       = {};
+label100       = {};
+labelchwilla   = {};
+labelbha       = {};
+labelref       = {};
+labelmegref    = {};
+labelmeggrad   = {};
+labelmegplanar = {};
+labelmegmag    = {};
+labelmegrefa   = {};
+labelmegrefc   = {};
+labelmegrefg   = {};
+labelmegrefl   = {};
+labelmegrefr   = {};
+labelmegrefm   = {};
+labeleog       = {};
+labelmz        = {};
+labelml        = {};
+labelmr        = {};
+labelmlc       = {};
+labelmlf       = {};
+labelmlo       = {};
+labelmlp       = {};
+labelmlt       = {};
+labelmrc       = {};
+labelmrf       = {};
+labelmro       = {};
+labelmrp       = {};
+labelmrt       = {};
+labelmzc       = {};
+labelmzf       = {};
+labelmzo       = {};
+labelmzp       = {};
+labellfp       = {};
+labelmua       = {};
+labelspike     = {};
+labelnirs      = {};
+
 % define the known groups with channel labels
 labelall    = datachannel;
 label1020   = ft_senslabel('eeg1020'); % use external helper function
@@ -165,7 +216,12 @@ labelemg    = datachannel(strncmp('EMG', datachannel, length('EMG')));
 labellfp    = datachannel(strncmp('lfp', datachannel, length('lfp')));
 labelmua    = datachannel(strncmp('mua', datachannel, length('mua')));
 labelspike  = datachannel(strncmp('spike', datachannel, length('spike')));
-labelnirs   = datachannel(~cellfun(@isempty, regexp(datachannel, sprintf('%s%s', regexptranslate('wildcard','Rx*-Tx*[*]'), '$'))));
+% for NIRS there are multiple options, either using the terminology transmitter/receiver versus source/detector, and then with either order of the two
+option1 = ~cellfun(@isempty, regexp(datachannel, sprintf('%s%s', regexptranslate('wildcard','Rx*-Tx*[*]'), '$')));
+option2 = ~cellfun(@isempty, regexp(datachannel, sprintf('%s%s', regexptranslate('wildcard','Tx*-Rx*[*]'), '$')));
+option3 = ~cellfun(@isempty, regexp(datachannel, sprintf('%s%s', regexptranslate('wildcard','D*-S*[*]'), '$')));
+option4 = ~cellfun(@isempty, regexp(datachannel, sprintf('%s%s', regexptranslate('wildcard','S*-D*[*]'), '$')));
+labelnirs = datachannel(option1 | option2 | option3 | option4);
 
 % use regular expressions to deal with the wildcards
 labelreg = false(size(datachannel));
@@ -174,12 +230,12 @@ for i=1:length(channel)
   if length(channel{i}) < 1
     continue;
   end
-
+  
   if strcmp((channel{i}(1)), '-')
     % skip channels to be excluded
     continue;
   end
-
+  
   rexp = sprintf('%s%s%s', '^', regexptranslate('wildcard',channel{i}), '$');
   lreg = ~cellfun(@isempty, regexp(datachannel, rexp));
   if any(lreg)
@@ -193,16 +249,8 @@ if ~isempty(findreg)
   labelreg = datachannel(labelreg);
 end
 
-% initialize all the system-specific variables to empty
-labelmeg       = [];
-labelmeggrad   = [];
-labelmegref    = [];
-labelmegmag    = [];
-labelmegplanar = [];
-labeleeg       = [];
-
 switch senstype
-
+  
   case {'yokogawa', 'yokogawa160', 'yokogawa160_planar', 'yokogawa64', 'yokogawa64_planar', 'yokogawa440', 'yokogawa440_planar'}
     % Yokogawa axial gradiometers channels start with AG, hardware planar gradiometer
     % channels start with PG, magnetometers start with M
@@ -214,7 +262,7 @@ switch senstype
     labelmegmag   = datachannel(megmag);
     labelmeggrad  = datachannel(megax | megpl);
     %%
-%    labeleeg  = datachannel(strncmp('EEG', datachannel, length('EEG')));
+    %    labeleeg  = datachannel(strncmp('EEG', datachannel, length('EEG')));
     eeg_A = myregexp('^A[^G]*[0-9hzZ]$', datachannel);
     eeg_P = myregexp('^P[^G]*[0-9hzZ]$', datachannel);
     eeg_T = myregexp('^T[^R]*[0-9hzZ]$', datachannel);
@@ -226,11 +274,9 @@ switch senstype
     eegind = logical( eeg_A + eeg_P + eeg_T + eeg_E + eeg_Z + eeg_M + eeg_O + eeg_EEG );
     clear eeg_A eeg_P eeg_T eeg_E eeg_Z eeg_M eeg_O eeg_EEG
     labeleeg      = datachannel(eegind);
-    %%
     labeleog    = [ labeleog(:); datachannel(myregexp('^EO[0-9]$', datachannel)) ];  % add 'EO'
-    %%
-    labelecg    = [ labelecg(:); datachannel(myregexp('^X[0-9]$', datachannel)) ];  % add 'X'
-
+    labelecg    = [ labelecg(:); datachannel(myregexp('^X[0-9]$', datachannel)) ];   % add 'X'
+    
   case {'ctf64'}
     labelml     = datachannel(~cellfun(@isempty, regexp(datachannel, '^SL')));    % left    MEG channels
     labelmr     = datachannel(~cellfun(@isempty, regexp(datachannel, '^SR')));    % right   MEG channels
@@ -240,7 +286,7 @@ switch senstype
       datachannel(strncmp('P'  , datachannel, 1));
       datachannel(strncmp('Q'  , datachannel, 1));
       datachannel(strncmp('R'  , datachannel, length('G'  )))];
-
+    
   case {'ctf', 'ctf275', 'ctf151', 'ctf275_planar', 'ctf151_planar'}
     % all CTF MEG channels start with "M"
     % all CTF reference channels start with B, G, P, Q or R
@@ -252,7 +298,7 @@ switch senstype
       datachannel(strncmp('Q'  , datachannel, 1));
       datachannel(strncmp('R'  , datachannel, length('G'  )))];
     labeleeg  = datachannel(strncmp('EEG', datachannel, length('EEG')));
-
+    
     % Not sure whether this should be here or outside the switch or
     % whether these specifications should be supported for systems
     % other than CTF.
@@ -273,11 +319,11 @@ switch senstype
     labelmzf  = datachannel(strncmp('MZF', datachannel, length('MZF')));
     labelmzo  = datachannel(strncmp('MZO', datachannel, length('MZO')));
     labelmzp  = datachannel(strncmp('MZP', datachannel, length('MZP')));
-
+    
   case {'bti', 'bti248', 'bti248grad', 'bti148', 'bti248_planar', 'bti148_planar'}
     % all 4D-BTi MEG channels start with "A"
     % all 4D-BTi reference channels start with M or G
-
+    
     labelmeg     = datachannel(myregexp('^A[0-9]+$', datachannel));
     labelmegref  = [datachannel(myregexp('^M[CLR][xyz][aA]*$', datachannel)); datachannel(myregexp('^G[xyz][xyz]A$', datachannel)); datachannel(myregexp('^M[xyz][aA]*$', datachannel))];
     labelmegrefa = datachannel(~cellfun(@isempty,strfind(datachannel, 'a')));
@@ -286,13 +332,13 @@ switch senstype
     labelmegrefl = datachannel(strncmp('ML', datachannel, 2));
     labelmegrefr = datachannel(strncmp('MR', datachannel, 2));
     labelmegrefm = datachannel(myregexp('^M[xyz][aA]*$', datachannel));
-
+    
   case {'neuromag122' 'neuromag122alt', 'neuromag122_combined'}
     % all neuromag MEG channels start with MEG
     % all neuromag EEG channels start with EEG
     labelmeg = datachannel(strncmp('MEG', datachannel, length('MEG')));
     labeleeg = datachannel(strncmp('EEG', datachannel, length('EEG')));
-
+    
   case {'neuromag306' 'neuromag306alt', 'neuromag306_combined'}
     % all neuromag MEG channels start with MEG
     % all neuromag EEG channels start with EEG
@@ -300,27 +346,27 @@ switch senstype
     % all neuromag306 magnetometers follow pattern MEG*1
     labelmeg = datachannel(strncmp('MEG', datachannel, length('MEG')));
     labeleeg = datachannel(strncmp('EEG', datachannel, length('EEG')));
-
+    
     labelmeggrad   = labelmeg(~cellfun(@isempty, regexp(labelmeg, '^MEG.*[23]$')));
     labelmegmag    = labelmeg(~cellfun(@isempty, regexp(labelmeg, '^MEG.*1$')));
     labelmegplanar = labelmeggrad;
-
+    
   case {'ant128', 'biosemi64', 'biosemi128', 'biosemi256', 'egi32', 'egi64', 'egi128', 'egi256', 'eeg1020', 'eeg1010', 'eeg1005', 'ext1020'}
     if ~ft_senstype(datachannel, 'unknown')
       % use an external helper function to define the list with EEG channel names
       labeleeg = ft_senslabel(ft_senstype(datachannel));
     end
-
+    
   case {'itab153' 'itab28' 'itab28_old'}
     % all itab MEG channels start with MAG
     labelmeg = datachannel(strncmp('MAG', datachannel, length('MAG')));
-
+    
   otherwise
     if ~isempty(datachantype)
       labelmeg = datachannel(strncmp('meg', datachantype, 3));
       labeleeg = datachannel(strncmp('eeg', datachantype, 3));
     end
-
+    
 end % switch ft_senstype
 
 % figure out if there are bad channels or channel groups that should be excluded
@@ -475,7 +521,6 @@ channel(badindx) = [];
 
 % remove channel labels that are not present in the data
 chanindx = match_str(channel, datachannel);
-
 channel  = channel(chanindx);
 
 if findgui

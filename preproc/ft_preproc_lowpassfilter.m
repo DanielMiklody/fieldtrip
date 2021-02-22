@@ -48,6 +48,11 @@ function [filt, B, A] = ft_preproc_lowpassfilter(dat,Fs,Flp,N,type,dir,instabili
 % domain signal is periodic. Another issue pertains to that frequencies are
 % not well defined over short time intervals; particularly for low frequencies.
 %
+% If the data contains NaNs, these will affect the output. With an IIR
+% filter, and/or with FFT-filtering, local NaNs will spread to the whole
+% time series. With a FIR filter, local NaNs will spread locally, depending
+% on the filter order.
+%
 % See also PREPROC
 
 % Copyright (c) 2003-2014, Robert Oostenveld, Arjen Stolk, Andreas Widmann
@@ -217,14 +222,15 @@ switch type
     end
 
     % Reporting
-    print_once(sprintf('Lowpass filtering data: %s, order %d, %s-windowed sinc FIR\n', dir, order, wintype));
+    ft_info once
+    ft_info('Lowpass filtering data: %s, order %d, %s-windowed sinc FIR\n', dir, order, wintype);
     if ~isTwopass && ~isOrderLow % Do not report shifted cutoffs
-      print_once(sprintf('  cutoff (-6 dB) %g Hz\n', Flp));
+      ft_info('  cutoff (-6 dB) %g Hz\n', Flp);
       tb = [max([Flp - df / 2 0]), min([Flp + df / 2 Fn])]; % Transition band edges
-      print_once(sprintf('  transition width %.1f Hz, passband 0-%.1f Hz, stopband %.1f-%.0f Hz\n', df, tb, Fn));
+      ft_info('  transition width %.1f Hz, passband 0-%.1f Hz, stopband %.1f-%.0f Hz\n', df, tb, Fn);
     end
     if ~isOrderLow
-      print_once(sprintf('  max. passband deviation %.4f (%.2f%%), stopband attenuation %.0f dB\n', pbDev, pbDev * 100, sbAtt));
+      ft_info('  max. passband deviation %.4f (%.2f%%), stopband attenuation %.0f dB\n', pbDev, pbDev * 100, sbAtt);
     end
 
     % Plot filter responses
@@ -277,7 +283,7 @@ switch type
 end
 
 % demean the data before filtering
-meandat = mean(dat,2);
+meandat = nanmean(dat,2);
 dat = bsxfun(@minus, dat, meandat);
 
 try

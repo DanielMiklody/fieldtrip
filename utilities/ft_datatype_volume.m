@@ -20,7 +20,7 @@ function [volume] = ft_datatype_volume(volume, varargin)
 %
 % Optional fields:
 %   - anatomy, prob, stat, grey, white, csf, or any other field with dimensions that are consistent with dim
-%   - size, coordsys
+%   - unit, size, coordsys
 %
 % Deprecated fields:
 %   - dimord
@@ -143,7 +143,7 @@ switch version
       try
         volume.(fn{i}) = reshape(volume.(fn{i}), volume.dim);
       catch
-        ft_warning('could not reshape "%s" to the expected dimensions', fn{i});
+        ft_notice('could not reshape "%s" to the dimensions of the volume', fn{i});
       end
     end
 

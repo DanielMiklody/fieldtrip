@@ -86,14 +86,15 @@ try
     else
         str = ' -MSM';
     end
-    if nargin<4
-        if isfield(headmodel,'inner_skull_surface')
-            source=[bndlabel{inner_skull_surface}];
-        else
-            source=[bndlabel{end}];
-        end
-    end
-    om_status = system([prefix 'om_assemble' str ' ' geomfile ' ' condfile ' ' dipfile ' ' dsmfile ' ' source]);
+%     if nargin<4
+%         if isfield(headmodel,'inner_skull_surface')
+%             source=[bndlabel{inner_skull_surface}];
+%         else
+%             source=[bndlabel{end}];
+%         end
+%     end
+%     om_status = system([prefix 'om_assemble' str ' ' geomfile ' ' condfile ' ' dipfile ' ' dsmfile ' ' source]);
+    om_status = system([prefix 'om_assemble' str ' ' geomfile ' ' condfile ' ' dipfile ' ' dsmfile]);
     
     if(om_status ~= 0) % status = 0 if successful
         ft_error(['Aborting OpenMEEG pipeline due to above error.']);

@@ -298,7 +298,7 @@ elseif ismeg
         headmodel.forwpar.scale = s;
       end
 
-    case  'openmeeg'
+    case  {'openmeeg' 'openmeegTripole'}
       % don't do anything, h2em or h2mm generated later in ft_prepare_leadfield
 
     case 'duneuro'
@@ -492,7 +492,7 @@ elseif iseeg
           headmodel.mat = headmodel.mat - repmat(avg, size(headmodel.mat,1), 1);
         end
       end
-    case  'openmeeg'
+    case  {'openmeeg' 'openmeegTripole'}
       % don't do anything, h2em or h2mm generated later in ft_prepare_leadfield
 
     case 'fns'

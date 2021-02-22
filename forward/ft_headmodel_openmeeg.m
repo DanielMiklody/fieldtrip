@@ -1,9 +1,10 @@
 function headmodel = ft_headmodel_openmeeg(bnd, varargin)
 
-% FT_HEADMODEL_OPENMEEG creates a volume conduction model of the head using the
-% boundary element method (BEM). This function takes as input the triangulated
-% surfaces that describe the boundaries and returns as output a volume conduction
-% model which can be used to compute leadfields.
+% FT_HEADMODEL_OPENMEEG creates a volume conduction model of the
+% head using the boundary element method (BEM). This function takes
+% as input the triangulated surfaces that describe the boundaries and
+% returns as output a volume conduction model which can be used to
+% compute leadfields.
 %
 % This function implements
 %   Gramfort et al. OpenMEEG: opensource software for quasistatic
@@ -15,9 +16,9 @@ function headmodel = ft_headmodel_openmeeg(bnd, varargin)
 %   beyond nested volumes. Phys. Med. Biol. (2006) vol. 51 pp. 1333-1346
 %   doi:10.1088/0031-9155/51/5/021
 %
-% This link with FieldTrip is derived from the OpenMEEG project with contributions
-% from Daniel Wong and Sarang Dalal, and uses external command-line executables.
-% See http://openmeeg.github.io/
+% This link with FieldTrip is derived from the OpenMEEG project
+% with contributions from Daniel Wong and Sarang Dalal, and uses external
+% command-line executables. See http://openmeeg.github.io/
 %
 % Use as
 %   headmodel = ft_headmodel_openmeeg(bnd, ...)
@@ -27,26 +28,9 @@ function headmodel = ft_headmodel_openmeeg(bnd, varargin)
 %   conductivity     = vector, conductivity of each compartment
 %   tissue           = tissue labels for each compartment
 %
-% See also FT_PREPARE_VOL_SENS, FT_COMPUTE_LEADFIELD
+% See also FT_PREPARE_VOL_SENS, FT_COMPUTE_LEADFIELD, FT_SYSMAT_OPENMEEG,
+%          FT_SENSINTERP_OPENMEEG
 
-% Copyright (C) 2010-2020, Robert Oostenveld
-%
-% This file is part of FieldTrip, see http://www.fieldtriptoolbox.org
-% for the documentation and details.
-%
-%    FieldTrip is free software: you can redistribute it and/or modify
-%    it under the terms of the GNU General Public License as published by
-%    the Free Software Foundation, either version 3 of the License, or
-%    (at your option) any later version.
-%
-%    FieldTrip is distributed in the hope that it will be useful,
-%    but WITHOUT ANY WARRANTY; without even the implied warranty of
-%    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-%    GNU General Public License for more details.
-%
-%    You should have received a copy of the GNU General Public License
-%    along with FieldTrip. If not, see <http://www.gnu.org/licenses/>.
-%
 % $Id$
 
 ft_hastoolbox('openmeeg', 1);  % add to path (if not yet on path)
@@ -119,7 +103,7 @@ if(isempty(tissue))
     case 3
       tissue = {'scalp','skull','brain'};
     case 4
-      tissue = {'scalp','skull','csf','brain'};
+            tissue = {'scalp','skull','CSF','brain'};
     otherwise
       tissue = strcat({'domain'},num2str((1:numboundaries)'));
   end
@@ -127,6 +111,7 @@ else
   tissue = tissue(order);
 end
 headmodel.tissue = tissue;
+
 
 headmodel.skin_surface = 1;
 headmodel.source = numboundaries;
@@ -161,8 +146,10 @@ try
       end
       clear bndtmp
     end
-    om_save_tri(bndfile{ii}, bnd(ii).pos, bnd(ii).tri);
-  end    
+        
+        om_save_tri(bndfile{ii}, bnd(ii).pos, bnd(ii).tri);
+    end
+    
     % retain surfaces in headmodel structure (after possible normal flip)
     headmodel.bnd = bnd;
         
@@ -190,18 +177,10 @@ try
     headmodel.mat = inv(headmodel.matA);
 
     rmdir(workdir,'s'); % remove workdir with intermediate files
-
-catch me
-  rmdir(workdir,'s'); % remove workdir with intermediate files
-  rethrow(me);
-end
-
+    ft_error('an error occurred while running OpenMEEG');
 % remember the type of volume conduction model
 headmodel.type = 'openmeeg';
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% SUBFUNCTION
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function ok = checknormals(bnd)
 points = bnd.pos;
 faces = bnd.tri;
@@ -212,16 +191,8 @@ points(:,1) = points(:,1) - org(1);
 points(:,2) = points(:,2) - org(2);
 points(:,3) = points(:,3) - org(3);
 
-% FIXME: this method is rigorous only for star shaped surfaces
 w = sum(solid_angle(points, faces));
 
 if w<0 && (abs(w)-4*pi)<1000*eps
-  ok = false;
-  ft_info('your surface normals are outwards oriented')
 elseif w>0 && (abs(w)-4*pi)<1000*eps
-  ok = true;
-  ft_info('your surface normals are inwards oriented')
 else
-  ok = false;
-  ft_error('your surface probably is irregular')
-end

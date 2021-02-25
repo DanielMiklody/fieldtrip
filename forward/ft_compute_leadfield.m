@@ -487,6 +487,7 @@ elseif iseeg
                 dsm            = ft_sysmat_openmeeg(dippos, headmodel, sens, nonadaptive);
             end
             lf               = ds2sens + h2sens*headmodel.mat*dsm;
+            
         case 'openmeegTripole'
             ft_hastoolbox('openmeeg', 1);
             nonadaptive = ft_getopt(varargin, 'nonadaptive');
@@ -504,17 +505,17 @@ elseif iseeg
                 msm            = openmeeg_msm(dipposm, headmodel, sens, nonadaptive);
                 dippos2=bsxfun(@plus,dipposm,[-1 0 0]);
                 msm1_1           = openmeeg_msm(dippos2, headmodel, sens, nonadaptive);
-                dippos2=bsxfun(@minus,dipposm,[2.7 0 0]);
+                dippos2=bsxfun(@plus,dipposm,[2.7 0 0]);
                 msm1_2           = openmeeg_msm(dippos2, headmodel, sens, nonadaptive);
                 dippos2=bsxfun(@plus,dipposm,[0 -1 0]);
                 msm2_1           = openmeeg_msm(dippos2, headmodel, sens, nonadaptive);
-                dippos2=bsxfun(@minus,dipposm,[0 2.7 0]);
+                dippos2=bsxfun(@plus,dipposm,[0 2.7 0]);
                 msm2_2           = openmeeg_msm(dippos2, headmodel, sens, nonadaptive);
                 dippos2=bsxfun(@plus,dipposm,[0 0 -1]);
                 msm3_1           = openmeeg_msm(dippos2, headmodel, sens, nonadaptive);
-                dippos2=bsxfun(@minus,dipposm,[0 0 2.7]);
+                dippos2=bsxfun(@plus,dipposm,[0 0 2.7]);
                 msm3_2           = openmeeg_msm(dippos2, headmodel, sens, nonadaptive);
-                tripoles=nan(size(msm1,1),size(msm1,2),3);
+                tripoles=nan(size(msm,1),size(msm,2),3);
                 tripoles(:,:,1)=-0.42*msm+0.3*msm1_1+0.12*msm1_2;
                 tripoles(:,:,2)=-0.42*msm+0.3*msm2_1+0.12*msm2_2;
                 tripoles(:,:,3)=-0.42*msm+0.3*msm3_1+0.12*msm3_2;

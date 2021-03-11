@@ -61,7 +61,7 @@ else
     %     Inamesp=strcat('+I',names);
     %     Inamesn=strcat('-I',names);
     for ii=1:numbnd
-            Numbernames{ii}=num2str(ii);
+            Numbernames{ii}=names{ii};
         switch names{ii}
             case {'skin','scalp','domain1'}
                 indices.skin=ii;
@@ -125,37 +125,37 @@ else
         indices.eyel=numel(names);
     end
     
-    fprintf(gfid,'# Domain Description 1.0\n');
+    fprintf(gfid,'# Domain Description 1.1\n');
     fprintf(gfid,'                        \n');
     fprintf(gfid,'Interfaces %d Mesh      \n', numbnd);
     fprintf(gfid,'                        \n');
     
     for i=1:numbnd
         %         fprintf(gfid,'Interface: "%s"                  \n',Inames{i}, bndfile{i});
-        fprintf(gfid,'%s                  \n', bndfile{i});
+        fprintf(gfid,'Interface %s:"%s"                  \n', names{i}, bndfile{i});
     end
     
     fprintf(gfid,'                        \n');
     fprintf(gfid,'Domains %d              \n', numbnd+1);
     fprintf(gfid,'                        \n');
     
-    fprintf(gfid,'Domain air %s           \n', Inamesp{indices.skin});
+    fprintf(gfid,'Domain air: %s           \n', Inamesp{indices.skin});
     for ii=1:numbnd
         switch names{ii}
             case {'skin','scalp'}
-                fprintf(gfid,'Domain %s %s %s %s %s\n', names{ii}, Inamesp{indices.skull},  Inamesn{indices.skin},  Inamesp{indices.eyel},  Inamesp{indices.eyer});
+                fprintf(gfid,'Domain %s: %s %s %s %s\n', names{ii}, Inamesp{indices.skull},  Inamesn{indices.skin},  Inamesp{indices.eyel},  Inamesp{indices.eyer});
             case {'skull','bone'}
-                fprintf(gfid,'Domain %s %s %s\n', names{ii}, Inamesp{indices.csf}, Inamesn{indices.skull});
+                fprintf(gfid,'Domain %s: %s %s\n', names{ii}, Inamesp{indices.csf}, Inamesn{indices.skull});
             case {'eyel','left eye'}
-                fprintf(gfid,'Domain %s %s   \n', names{ii}, Inamesn{indices.eyel});
+                fprintf(gfid,'Domain %s: %s   \n', names{ii}, Inamesn{indices.eyel});
             case {'eyer','right eye'}
-                fprintf(gfid,'Domain %s %s   \n', names{ii}, Inamesn{indices.eyer});
+                fprintf(gfid,'Domain %s: %s   \n', names{ii}, Inamesn{indices.eyer});
             case {'csf','CSF'}
-                fprintf(gfid,'Domain %s %s %s\n', names{ii}, Inamesp{indices.gray}, Inamesn{indices.csf});
+                fprintf(gfid,'Domain %s: %s %s\n', names{ii}, Inamesp{indices.gray}, Inamesn{indices.csf});
             case {'brain','gray matter'}
-                fprintf(gfid,'Domain %s %s %s \n', names{ii}, Inamesn{indices.gray}, Inamesp{indices.white});
+                fprintf(gfid,'Domain %s: %s %s \n', names{ii}, Inamesn{indices.gray}, Inamesp{indices.white});
             case {'white matter'}
-                fprintf(gfid,'Domain %s %s   \n', names{ii}, Inamesn{indices.white});
+                fprintf(gfid,'Domain %s: %s   \n', names{ii}, Inamesn{indices.white});
         end
     end
     fclose(gfid);

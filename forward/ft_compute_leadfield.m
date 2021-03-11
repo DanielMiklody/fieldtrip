@@ -504,7 +504,7 @@ elseif iseeg
                 case 'openmeegTripole3'
                     locs=[-1 0 2.8];
                     amps=[-0.42 0.3 -0.12];
-            
+            end
             [h2sens,ds2sens] = ft_sensinterp_openmeeg(dippos, headmodel, sens);
             brainsources=is_inside(dippos,headmodel.bnd(end));
             lf=nan(size(h2sens,1),size(dippos,1)*3);

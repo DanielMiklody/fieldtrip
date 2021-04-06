@@ -1,4 +1,4 @@
-function [lf] = ft_compute_leadfield(dippos, sens, headmodel, varargin)
+    function [lf] = ft_compute_leadfield(dippos, sens, headmodel, varargin)
 
 % FT_COMPUTE_LEADFIELD computes a forward solution for a dipole in a a volume
 % conductor model. The forward solution is expressed as the leadfield matrix
@@ -495,15 +495,15 @@ elseif iseeg
             switch ft_headmodeltype(headmodel)
                 case 'openmeegTripole'
                     locs=[-1 0 2.8];
-                    amps=[-0.42 0.3 -0.12];
+                    amps=[-0.3  0.42 -0.12];
                     
                 case 'openmeegTripole2' 
-                    locs=[-1 0 2.8];
-                    amps=[-0.42 0.3 -0.12];
+                    locs=[-1.6 0 3.2];
+                    amps=[-1 2 -1];
                     
                 case 'openmeegTripole3'
-                    locs=[-1 0 2.8];
-                    amps=[-0.42 0.3 -0.12];
+                    locs=[-2.1 0 4.8];
+                    amps=[-1 2 -1];
             end
             [h2sens,ds2sens] = ft_sensinterp_openmeeg(dippos, headmodel, sens);
             brainsources=is_inside(dippos,headmodel.bnd(end));
@@ -518,20 +518,20 @@ elseif iseeg
                 msm            = openmeeg_msm(dipposm+locs(2), headmodel, sens, nonadaptive);
                 dippos2=bsxfun(@plus,dipposm,[locs(1) 0 0]);
                 msm1_1           = openmeeg_msm(dippos2, headmodel, sens, nonadaptive);
-                dippos2=bsxfun(@plus,dipposm,[locs(2) 0 0]);
+                dippos2=bsxfun(@plus,dipposm,[locs(3) 0 0]);
                 msm1_2           = openmeeg_msm(dippos2, headmodel, sens, nonadaptive);
                 dippos2=bsxfun(@plus,dipposm,[0 locs(1) 0]);
                 msm2_1           = openmeeg_msm(dippos2, headmodel, sens, nonadaptive);
-                dippos2=bsxfun(@plus,dipposm,[0 locs(2) 0]);
+                dippos2=bsxfun(@plus,dipposm,[0 locs(3) 0]);
                 msm2_2           = openmeeg_msm(dippos2, headmodel, sens, nonadaptive);
                 dippos2=bsxfun(@plus,dipposm,[0 0 locs(1)]);
                 msm3_1           = openmeeg_msm(dippos2, headmodel, sens, nonadaptive);
-                dippos2=bsxfun(@plus,dipposm,[0 0 locs(2)]);
+                dippos2=bsxfun(@plus,dipposm,[0 0 locs(3)]);
                 msm3_2           = openmeeg_msm(dippos2, headmodel, sens, nonadaptive);
                 tripoles=nan(size(msm,1),size(msm,2),3);
-                tripoles(:,:,1)=amps(1)*msm+amps(2)*msm1_1+amps(3)*msm1_2;
-                tripoles(:,:,2)=amps(1)*msm+amps(2)*msm2_1+amps(3)*msm2_2;
-                tripoles(:,:,3)=amps(1)*msm+amps(2)*msm3_1+amps(3)*msm3_2;
+                tripoles(:,:,1)=amps(1)*msm1_1+amps(2)*msm+amps(3)*msm1_2;
+                tripoles(:,:,2)=amps(1)*msm2_1+amps(2)*msm+amps(3)*msm2_2;
+                tripoles(:,:,3)=amps(1)*msm3_1+amps(2)*msm+amps(3)*msm3_2;
                 tripoles=reshape(permute(tripoles,[1 3 2]),size(tripoles,1),[]);
                 lf(:,~brainsources2)     = h2sens*headmodel.mat*tripoles;
             end

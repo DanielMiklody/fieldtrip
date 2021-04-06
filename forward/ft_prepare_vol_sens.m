@@ -492,7 +492,7 @@ elseif iseeg
           headmodel.mat = headmodel.mat - repmat(avg, size(headmodel.mat,1), 1);
         end
       end
-    case  {'openmeeg' 'openmeegTripole'}
+    case  {'openmeeg' 'openmeegTripole' 'openmeegTripole2' 'openmeegTripole3'}
       % don't do anything, h2em or h2mm generated later in ft_prepare_leadfield
 
     case 'fns'

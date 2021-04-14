@@ -502,7 +502,7 @@ elseif iseeg
                     amps=[-1 2 -1];
                     
                 case 'openmeegTripole3'
-                    locs=[-2.1 0 4.8];
+                    locs=[-4.4 0 7.4];
                     amps=[-1 2 -1];
             end
             [h2sens,ds2sens] = ft_sensinterp_openmeeg(dippos, headmodel, sens);
